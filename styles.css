@@ -9,7 +9,7 @@
 [data-theme="light"] {
   --ee-search-primary: var(--brand-green, #10b981);
   --ee-search-primary-hover: var(--brand-green-hover, #059669);
-  --ee-search-primary-light: rgba(16, 185, 129, 0.12);
+  --ee-search-primary-light: rgba(16, 185, 129, 0.1);
   --ee-search-indigo: #059669;
   --ee-search-accent: #10b981;
   --ee-search-bg: #ffffff;
@@ -27,33 +27,10 @@
   --ee-search-shadow-lg: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ee-search-primary: #10b981;
-    --ee-search-primary-hover: #34d399;
-    --ee-search-primary-light: rgba(16, 185, 129, 0.18);
-    --ee-search-indigo: #34d399;
-    --ee-search-accent: #10b981;
-    --ee-search-bg: #141c19;
-    --ee-search-surface: #18221e;
-    --ee-search-card-bg: #1b2622;
-    --ee-search-card-hover: #22302b;
-    --ee-search-border: #283731;
-    --ee-search-border-focus: #10b981;
-    --ee-search-text: #f0fdf4;
-    --ee-search-text-muted: #8fa39a;
-    --ee-search-hl-bg: rgba(250, 204, 21, 0.25);
-    --ee-search-hl-text: #fde047;
-    --ee-search-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-    --ee-search-shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-    --ee-search-shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-  }
-}
-
-.dark,
-[data-theme="dark"],
+:root.dark,
 html.dark,
 body.dark,
+[data-theme="dark"],
 .edgeever-search-backdrop.dark {
   --ee-search-primary: #10b981;
   --ee-search-primary-hover: #34d399;
@@ -120,6 +97,7 @@ body.dark,
 }
 
 /* 扩展坞悬浮形态 (FAB) - 极简墨玉黑曜石与薄荷翡翠青质感，完美融入 EdgeEver 客户端 */
+/* 扩展坞悬浮形态 (FAB) */
 .edgeever-enhancing-search-trigger-btn.is-dock-btn,
 .edgeever-enhancing-search-trigger-btn.is-fab {
   width: 44px;
@@ -127,14 +105,39 @@ body.dark,
   min-width: 44px;
   min-height: 44px;
   border-radius: 22px;
+  background: var(--ee-search-bg);
+  color: var(--ee-search-primary);
+  border: 1px solid var(--ee-search-border);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
+}
+
+.edgeever-enhancing-search-trigger-btn.is-dock-btn:hover,
+.edgeever-enhancing-search-trigger-btn.is-fab:hover {
+  background: var(--ee-search-card-hover);
+  color: var(--ee-search-primary-hover);
+  border-color: var(--ee-search-primary);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25);
+}
+
+/* 深色模式下的 FAB 悬浮按钮 */
+:root.dark .edgeever-enhancing-search-trigger-btn.is-dock-btn,
+:root.dark .edgeever-enhancing-search-trigger-btn.is-fab,
+html.dark .edgeever-enhancing-search-trigger-btn.is-dock-btn,
+html.dark .edgeever-enhancing-search-trigger-btn.is-fab,
+[data-theme="dark"] .edgeever-enhancing-search-trigger-btn.is-dock-btn,
+[data-theme="dark"] .edgeever-enhancing-search-trigger-btn.is-fab {
   background: linear-gradient(135deg, #1b2622 0%, #141c19 100%);
   color: #10b981;
   border: 1px solid rgba(16, 185, 129, 0.28);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
 
-.edgeever-enhancing-search-trigger-btn.is-dock-btn:hover,
-.edgeever-enhancing-search-trigger-btn.is-fab:hover {
+:root.dark .edgeever-enhancing-search-trigger-btn.is-dock-btn:hover,
+:root.dark .edgeever-enhancing-search-trigger-btn.is-fab:hover,
+html.dark .edgeever-enhancing-search-trigger-btn.is-dock-btn:hover,
+html.dark .edgeever-enhancing-search-trigger-btn.is-fab:hover,
+[data-theme="dark"] .edgeever-enhancing-search-trigger-btn.is-dock-btn:hover,
+[data-theme="dark"] .edgeever-enhancing-search-trigger-btn.is-fab:hover {
   background: linear-gradient(135deg, #22302b 0%, #18221e 100%);
   color: #34d399;
   border-color: #10b981;
@@ -204,9 +207,9 @@ body.dark,
 .edgeever-search-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(10, 16, 14, 0.72);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -215,6 +218,12 @@ body.dark,
   animation: eeSearchFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   box-sizing: border-box;
+}
+
+.edgeever-search-backdrop.dark {
+  background: rgba(10, 16, 14, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 @keyframes eeSearchFadeIn {

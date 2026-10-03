@@ -602,14 +602,45 @@ function openSearchModal(context, engine) {
 
   const backdrop = document.createElement("div");
   backdrop.className = "edgeever-search-backdrop";
-  const isHostDark = document.documentElement.classList.contains("dark") || 
-                     document.body.classList.contains("dark") ||
-                     document.documentElement.getAttribute("data-theme") === "dark" ||
-                     document.body.getAttribute("data-theme") === "dark" ||
-                     (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
-  if (isHostDark) {
-    backdrop.classList.add("dark");
+  // 精准跟随 EdgeEver 宿主应用层的主题状态 (严格尊重应用内设置，杜绝系统深色模式强行覆盖)
+  function checkIsHostDark() {
+    // 1. EdgeEver 官方规范：ThemeProvider 直接在 document.documentElement 上切换 class 'dark' 与 style.colorScheme
+    if (document.documentElement.classList.contains("dark")) return true;
+    if (document.documentElement.style.colorScheme === "dark") return true;
+    if (document.documentElement.style.colorScheme === "light") return false;
+
+    // 2. 检查 EdgeEver 本地存储的官方主题偏好 ('light' | 'dark' | 'system')
+    try {
+      const themePref = localStorage.getItem("edgeever.theme");
+      if (themePref === "light") return false;
+      if (themePref === "dark") return true;
+    } catch (e) {}
+
+    // 3. 若宿主明确含有 light 标识，坚决为浅色/白色
+    if (document.documentElement.classList.contains("light") || document.body.classList.contains("light")) {
+      return false;
+    }
+
+    // 4. 仅当应用设置为跟随系统时，才回退至系统媒体查询
+    return !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
   }
+
+  function syncModalTheme() {
+    if (checkIsHostDark()) {
+      backdrop.classList.add("dark");
+    } else {
+      backdrop.classList.remove("dark");
+    }
+  }
+
+  syncModalTheme();
+
+  // 动态监听 EdgeEver 客户端的主题变更
+  let themeObserver = null;
+  try {
+    themeObserver = new MutationObserver(() => syncModalTheme());
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "style"] });
+  } catch (e) {}
 
   // 状态变量
   let currentNotes = [];
@@ -750,6 +781,9 @@ function openSearchModal(context, engine) {
 
   // 关闭逻辑
   function closeModal() {
+    try {
+      themeObserver?.disconnect();
+    } catch (e) {}
     backdrop.style.opacity = "0";
     backdrop.style.transition = "opacity 0.15s ease";
     setTimeout(() => {
