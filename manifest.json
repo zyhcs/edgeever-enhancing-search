@@ -2,7 +2,7 @@
   "type": "plugin",
   "id": "org.edgeever.plugins.enhancing-search",
   "name": "Enhancing Search",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "apiVersion": "2",
   "settingsUi": "host",
   "description": "Powerful global full-text search across all notes with keywords, tags, created & updated dates, instant snippet highlights, and modern card preview.",
@@ -18,7 +18,7 @@
   "permissions": [
     "notes:read",
     "notes:write",
-    "notebooks:read",
+    "metadata:read",
     "resources:read",
     "editor:read",
     "ui:commands",
