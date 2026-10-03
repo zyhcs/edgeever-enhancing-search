@@ -4,10 +4,12 @@
  * 沉浸式双栏卡片预览、上下文高亮与插件扩展坞适配
  */
 
-:root {
-  --ee-search-primary: #3b82f6;
-  --ee-search-primary-hover: #2563eb;
-  --ee-search-primary-light: rgba(59, 130, 246, 0.12);
+:root,
+.light,
+[data-theme="light"] {
+  --ee-search-primary: #10b981;
+  --ee-search-primary-hover: #059669;
+  --ee-search-primary-light: rgba(16, 185, 129, 0.12);
   --ee-search-indigo: #6366f1;
   --ee-search-accent: #0ea5e9;
   --ee-search-bg: #ffffff;
@@ -15,7 +17,7 @@
   --ee-search-card-bg: #ffffff;
   --ee-search-card-hover: #f1f5f9;
   --ee-search-border: #e2e8f0;
-  --ee-search-border-focus: #3b82f6;
+  --ee-search-border-focus: #10b981;
   --ee-search-text: #0f172a;
   --ee-search-text-muted: #64748b;
   --ee-search-hl-bg: #fef08a;
@@ -27,25 +29,49 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --ee-search-primary: #60a5fa;
-    --ee-search-primary-hover: #93c5fd;
-    --ee-search-primary-light: rgba(96, 165, 250, 0.16);
+    --ee-search-primary: #34d399;
+    --ee-search-primary-hover: #6ee7b7;
+    --ee-search-primary-light: rgba(52, 211, 153, 0.15);
     --ee-search-indigo: #818cf8;
     --ee-search-accent: #38bdf8;
     --ee-search-bg: #0f172a;
     --ee-search-surface: #1e293b;
     --ee-search-card-bg: #1e293b;
-    --ee-search-card-hover: #334155;
+    --ee-search-card-hover: #263345;
     --ee-search-border: #334155;
-    --ee-search-border-focus: #60a5fa;
+    --ee-search-border-focus: #34d399;
     --ee-search-text: #f8fafc;
     --ee-search-text-muted: #94a3b8;
-    --ee-search-hl-bg: #854d0e;
-    --ee-search-hl-text: #fef08a;
+    --ee-search-hl-bg: rgba(250, 204, 21, 0.25);
+    --ee-search-hl-text: #fde047;
     --ee-search-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
     --ee-search-shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
     --ee-search-shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
   }
+}
+
+.dark,
+[data-theme="dark"],
+html.dark,
+body.dark {
+  --ee-search-primary: #34d399;
+  --ee-search-primary-hover: #6ee7b7;
+  --ee-search-primary-light: rgba(52, 211, 153, 0.15);
+  --ee-search-indigo: #818cf8;
+  --ee-search-accent: #38bdf8;
+  --ee-search-bg: #0f172a;
+  --ee-search-surface: #1e293b;
+  --ee-search-card-bg: #1e293b;
+  --ee-search-card-hover: #263345;
+  --ee-search-border: #334155;
+  --ee-search-border-focus: #34d399;
+  --ee-search-text: #f8fafc;
+  --ee-search-text-muted: #94a3b8;
+  --ee-search-hl-bg: rgba(250, 204, 21, 0.25);
+  --ee-search-hl-text: #fde047;
+  --ee-search-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --ee-search-shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  --ee-search-shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
 }
 
 /* ==================== 1. 入口触发按钮与插件扩展坞 ==================== */
@@ -92,7 +118,7 @@
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* 扩展坞悬浮形态 (FAB) */
+/* 扩展坞悬浮形态 (FAB) - 极简黑曜石与珍珠银质感，完美融入深色/浅色客户端 */
 .edgeever-enhancing-search-trigger-btn.is-dock-btn,
 .edgeever-enhancing-search-trigger-btn.is-fab {
   width: 44px;
@@ -100,24 +126,26 @@
   min-width: 44px;
   min-height: 44px;
   border-radius: 22px;
-  background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
-  color: #60a5fa;
-  border: 1px solid rgba(96, 165, 250, 0.35);
-  box-shadow: 0 4px 14px rgba(30, 58, 138, 0.35);
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: #f1f5f9;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
 }
 
 .edgeever-enhancing-search-trigger-btn.is-dock-btn:hover,
 .edgeever-enhancing-search-trigger-btn.is-fab:hover {
-  background: linear-gradient(135deg, #2563eb 0%, #1e293b 100%);
-  color: #ffffff;
-  border-color: rgba(96, 165, 250, 0.6);
-  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
+  background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+  color: var(--ee-search-primary);
+  border-color: var(--ee-search-primary);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
 }
 
 .edgeever-enhancing-search-trigger-btn.is-dock-btn svg,
 .edgeever-enhancing-search-trigger-btn.is-fab svg {
   width: 20px;
   height: 20px;
+  fill: currentColor;
+}
   fill: currentColor;
 }
 
@@ -498,9 +526,20 @@
 }
 
 .edgeever-meta-tag.is-notebook {
-  background: rgba(59, 130, 246, 0.1);
+  background: rgba(16, 185, 129, 0.12);
   color: var(--ee-search-primary);
   font-weight: 500;
+}
+
+/* 层级面包屑路径 (例如: 知识库 / ABAP开发 / 常用代码) */
+.edgeever-meta-tag.is-path {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--ee-search-primary);
+  font-weight: 500;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .edgeever-meta-tag.is-user-tag {
@@ -705,6 +744,36 @@ mark.ee-search-hl {
 .edgeever-preview-markdown ol {
   padding-left: 24px;
   margin: 0.8em 0;
+}
+
+/* 预览正文图片展示样式 */
+.ee-preview-img-box {
+  margin: 16px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--ee-search-surface);
+  border: 1px solid var(--ee-search-border);
+  padding: 8px;
+}
+
+.ee-preview-img {
+  max-width: 100%;
+  max-height: 480px;
+  height: auto;
+  border-radius: 6px;
+  object-fit: contain;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  display: block;
+}
+
+.ee-preview-img-caption {
+  font-size: 11px;
+  color: var(--ee-search-text-muted);
+  margin-top: 6px;
+  text-align: center;
 }
 
 /* 空白与缺省态 */

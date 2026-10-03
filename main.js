@@ -96,7 +96,7 @@ function stripMarkdown(md) {
 }
 
 /**
- * 简易 Markdown 转安全 HTML（用于右侧即时卡片预览）
+ * 简易 Markdown 转安全 HTML（用于右侧即时卡片预览，支持图片、代码、引用与列表）
  */
 function renderMarkdownPreviewHtml(md, keywords = []) {
   if (!md) return "<p style='color: var(--ee-search-text-muted);'>（暂无正文内容）</p>";
@@ -125,12 +125,36 @@ function renderMarkdownPreviewHtml(md, keywords = []) {
       continue;
     }
 
+    // 1. 独立图片行: ![alt](url)
+    const imgSoloMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    if (imgSoloMatch) {
+      if (inUl) {
+        html += "</ul>";
+        inUl = false;
+      }
+      const alt = imgSoloMatch[1] || "";
+      const rawSrc = imgSoloMatch[2].trim();
+      const safeSrc = escapeHtml(rawSrc);
+      const safeAlt = escapeHtml(alt);
+      html += `
+        <div class="ee-preview-img-box">
+          <img src="${safeSrc}" alt="${safeAlt}" loading="lazy" class="ee-preview-img" data-res-src="${safeSrc}" />
+          ${alt && alt !== "image.png" ? `<span class="ee-preview-img-caption">${safeAlt}</span>` : ""}
+        </div>
+      `;
+      continue;
+    }
+
     if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
       if (!inUl) {
         html += "<ul>";
         inUl = true;
       }
-      html += `<li>${escapeHtml(trimmed.slice(2))}</li>`;
+      let liText = escapeHtml(trimmed.slice(2));
+      // 行内加粗与行内代码
+      liText = liText.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+      liText = liText.replace(/`([^`]+)`/g, "<code>$1</code>");
+      html += `<li>${liText}</li>`;
       continue;
     } else if (inUl) {
       html += "</ul>";
@@ -146,7 +170,18 @@ function renderMarkdownPreviewHtml(md, keywords = []) {
     } else if (trimmed.startsWith("> ")) {
       html += `<blockquote>${escapeHtml(trimmed.slice(2))}</blockquote>`;
     } else if (trimmed.length > 0) {
-      html += `<p>${escapeHtml(trimmed)}</p>`;
+      let pText = escapeHtml(trimmed);
+      // 替换行内嵌入的图片
+      pText = pText.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
+        const safeSrc = escapeHtml(src.trim());
+        const safeAlt = escapeHtml(alt || "");
+        return `<div class="ee-preview-img-box"><img src="${safeSrc}" alt="${safeAlt}" loading="lazy" class="ee-preview-img" data-res-src="${safeSrc}" /></div>`;
+      });
+      // 替换行内加粗
+      pText = pText.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+      // 替换行内代码
+      pText = pText.replace(/`([^`]+)`/g, "<code>$1</code>");
+      html += `<p>${pText}</p>`;
     }
   }
 
@@ -165,14 +200,96 @@ function renderMarkdownPreviewHtml(md, keywords = []) {
   return html;
 }
 
+/**
+ * 异步图片资源加载兜底器 (兼容 edgeever-resource:// 协议与 context.resources.read)
+ */
+function hydratePreviewImages(containerEl, context) {
+  if (!containerEl) return;
+  const imgs = containerEl.querySelectorAll("img[data-res-src]");
+  imgs.forEach((img) => {
+    const rawSrc = img.getAttribute("data-res-src");
+    if (!rawSrc) return;
+
+    const resMatch = rawSrc.match(/(res_[a-f0-9]{24,40})/);
+    if (resMatch && context.resources && typeof context.resources.read === "function") {
+      const resId = resMatch[1];
+
+      // 处理加载异常，尝试转 Blob
+      const tryLoadBlob = async () => {
+        try {
+          const blob = await context.resources.read(resId);
+          if (blob) {
+            const objectUrl = URL.createObjectURL(blob);
+            img.src = objectUrl;
+          }
+        } catch (e) {
+          console.warn("[Enhancing Search] resources.read 异步兜底失败:", e);
+        }
+      };
+
+      img.addEventListener("error", tryLoadBlob, { once: true });
+
+      // 如果是已知自定义协议，主动触发一次安全读取
+      if (rawSrc.startsWith("edgeever-resource://") || rawSrc.includes("/api/v1/resources/")) {
+        tryLoadBlob();
+      }
+    }
+  });
+}
+
 // ==================== 2. 全库笔记获取与检索引擎 ====================
 
 class EnhancedSearchEngine {
   constructor(context) {
     this.context = context;
     this.cachedNotes = [];
+    this.notebookMap = new Map();
     this.lastIndexedAt = 0;
     this.isIndexing = false;
+  }
+
+  /**
+   * 拉取整个应用内所有笔记本的树形元数据
+   */
+  async loadNotebooks() {
+    try {
+      if (this.context.notebooks && typeof this.context.notebooks.list === "function") {
+        const list = await this.context.notebooks.list();
+        if (Array.isArray(list)) {
+          this.notebookMap.clear();
+          for (const nb of list) {
+            if (nb && nb.id) {
+              this.notebookMap.set(nb.id, {
+                id: nb.id,
+                name: nb.name || "未命名笔记本",
+                parentId: nb.parentId || null,
+              });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("[Enhancing Search] 加载笔记本列表异常:", e);
+    }
+  }
+
+  /**
+   * 递归解析笔记本的层级路径 (例如: 知识库 / ABAP开发 / 常用代码)
+   */
+  resolveNotebookPath(notebookId) {
+    if (!notebookId || !this.notebookMap.has(notebookId)) {
+      return "默认笔记本";
+    }
+    const parts = [];
+    let curr = this.notebookMap.get(notebookId);
+    let depth = 0;
+    while (curr && depth < 8) {
+      parts.unshift(curr.name);
+      if (!curr.parentId || !this.notebookMap.has(curr.parentId)) break;
+      curr = this.notebookMap.get(curr.parentId);
+      depth++;
+    }
+    return parts.length > 0 ? parts.join(" / ") : "默认笔记本";
   }
 
   /**
@@ -190,6 +307,8 @@ class EnhancedSearchEngine {
     }
 
     this.isIndexing = true;
+    await this.loadNotebooks();
+
     const allNotes = [];
     const limit = 100;
     let offset = 0;
@@ -215,6 +334,9 @@ class EnhancedSearchEngine {
           if (!item || !item.id) continue;
           const excerptText = item.excerpt || item.contentText || "";
           const rawMd = item.contentMarkdown || item.content || item.body || "";
+          const nbName = item.notebookName || item.notebook?.name || "默认笔记本";
+          const nbPath = this.resolveNotebookPath(item.notebookId) || nbName;
+
           allNotes.push({
             id: item.id,
             title: (item.title || "").trim() || "无标题笔记",
@@ -223,7 +345,8 @@ class EnhancedSearchEngine {
             plainText: stripMarkdown(rawMd) || excerptText,
             tags: Array.isArray(item.tags) ? item.tags : [],
             notebookId: item.notebookId || item.notebook_id || "",
-            notebookName: item.notebookName || item.notebook?.name || "默认笔记本",
+            notebookName: nbName,
+            notebookPath: nbPath,
             createdAt: item.createdAt || item.created_at || Date.now(),
             updatedAt: item.updatedAt || item.updated_at || item.createdAt || Date.now(),
           });
@@ -259,10 +382,12 @@ class EnhancedSearchEngine {
       if (full) {
         const md = full.contentMarkdown || full.content || "";
         const pt = stripMarkdown(md) || full.excerpt || full.contentText || "";
+        const nbPath = this.resolveNotebookPath(full.notebookId) || full.notebookName || "默认笔记本";
         if (cached) {
           cached.contentMarkdown = md;
           cached.plainText = pt;
           if (full.notebookName) cached.notebookName = full.notebookName;
+          cached.notebookPath = nbPath;
           if (full.tags && Array.isArray(full.tags)) cached.tags = full.tags;
           return cached;
         }
@@ -274,6 +399,7 @@ class EnhancedSearchEngine {
           tags: full.tags || [],
           notebookId: full.notebookId || "",
           notebookName: full.notebookName || "默认笔记本",
+          notebookPath: nbPath,
           createdAt: full.createdAt,
           updatedAt: full.updatedAt,
         };
@@ -647,7 +773,7 @@ function openSearchModal(context, engine) {
 
     previewOpenBtn.style.display = "inline-flex";
     previewTitleEl.textContent = note.title;
-    previewSubtitleEl.textContent = `所属笔记本：${note.notebookName} • 更新于 ${formatRelativeTime(note.updatedAt)}`;
+    previewSubtitleEl.textContent = `文档路径：${note.notebookPath || note.notebookName} • 更新于 ${formatRelativeTime(note.updatedAt)}`;
 
     const tagsHtml = note.tags && note.tags.length > 0
       ? note.tags.map((t) => `<span class="edgeever-meta-tag is-user-tag">#${escapeHtml(t)}</span>`).join(" ")
@@ -657,11 +783,12 @@ function openSearchModal(context, engine) {
 
     const renderMetaAndBody = (targetNote) => {
       const actualCount = (targetNote.plainText || targetNote.excerpt || "").length;
+      const displayPath = targetNote.notebookPath || targetNote.notebookName || "默认笔记本";
       const metaGridHtml = `
         <div class="edgeever-preview-meta-grid">
           <div class="edgeever-preview-meta-item">
-            <span class="edgeever-preview-meta-label">所属笔记本</span>
-            <span class="edgeever-preview-meta-value">${escapeHtml(targetNote.notebookName)}</span>
+            <span class="edgeever-preview-meta-label">文档路径</span>
+            <span class="edgeever-preview-meta-value" style="font-size: 12px;" title="${escapeHtml(displayPath)}">📂 ${escapeHtml(displayPath)}</span>
           </div>
           <div class="edgeever-preview-meta-item">
             <span class="edgeever-preview-meta-label">最后修改时间</span>
@@ -693,6 +820,9 @@ function openSearchModal(context, engine) {
           ${bodyHtml}
         </div>
       `;
+
+      // 激活图片加载与异步协议转换
+      hydratePreviewImages(previewBodyEl, context);
     };
 
     // 先用已有的数据快速渲染一次
@@ -773,6 +903,7 @@ function openSearchModal(context, engine) {
         : "";
 
       const timeVal = dateField === "created" ? note.createdAt : note.updatedAt;
+      const displayPath = note.notebookPath || note.notebookName || "默认笔记本";
 
       card.innerHTML = `
         <div class="edgeever-search-card-header">
@@ -780,7 +911,7 @@ function openSearchModal(context, engine) {
           <div class="edgeever-search-card-time">${formatRelativeTime(timeVal)}</div>
         </div>
         <div class="edgeever-search-card-meta">
-          <span class="edgeever-meta-tag is-notebook">📁 ${escapeHtml(note.notebookName)}</span>
+          <span class="edgeever-meta-tag is-path" title="文档完整路径：${escapeHtml(displayPath)}">📂 ${escapeHtml(displayPath)}</span>
           ${tagsPills}
         </div>
         <div class="edgeever-search-card-snippet">

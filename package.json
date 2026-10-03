@@ -1,6 +1,6 @@
 {
   "name": "edgeever-enhancing-search",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Enhanced global search plugin for EdgeEver with keywords, tags, created & updated dates, instant highlights, and modern card preview.",
   "main": "main.js",
   "scripts": {

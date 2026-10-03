@@ -2,14 +2,14 @@
   "type": "plugin",
   "id": "org.edgeever.plugins.enhancing-search",
   "name": "Enhancing Search",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "apiVersion": "2",
   "settingsUi": "host",
   "description": "Powerful global full-text search across all notes with keywords, tags, created & updated dates, instant snippet highlights, and modern card preview.",
   "locales": {
     "zh-CN": {
       "name": "全库增强搜索 (Enhancing Search)",
-      "description": "专为 EdgeEver 打造的全应用深度增强搜索插件。打破单个笔记本限制，支持全库全文检索、多关键词分词、标签筛选、创建与修改时间范围过滤、智能高亮摘要以及双栏沉浸式卡片实时预览。"
+      "description": "专为 EdgeEver 打造的全应用深度增强搜索插件。打破单个笔记本限制，支持全库全文检索、多关键词分词、标签筛选、层级路径面包屑、创建与修改时间范围过滤、智能高亮摘要以及双栏沉浸式卡片实时预览。"
     }
   },
   "author": "zyhcs",
@@ -18,6 +18,8 @@
   "permissions": [
     "notes:read",
     "notes:write",
+    "notebooks:read",
+    "resources:read",
     "editor:read",
     "ui:commands",
     "ui:notices",
