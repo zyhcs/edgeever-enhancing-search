@@ -237,6 +237,149 @@ function hydratePreviewImages(containerEl, context) {
   });
 }
 
+// ==================== 1.5 拼音首字母提取与高级检索语法解析 ====================
+
+// 汉字拼音首字母边界表 (基于 GB2312/Unicode 拼音排序分界，原生 0KB 轻量实现)
+const PINYIN_BOUNDARIES = [
+  ['a', '啊'], ['b', '芭'], ['c', '擦'], ['d', '搭'], ['e', '蛾'],
+  ['f', '发'], ['g', '噶'], ['h', '哈'], ['j', '击'], ['k', '喀'],
+  ['l', '垃'], ['m', '妈'], ['n', '拿'], ['o', '噢'], ['p', '啪'],
+  ['q', '期'], ['r', '然'], ['s', '撒'], ['t', '塌'], ['w', '挖'],
+  ['x', '昔'], ['y', '压'], ['z', '匝']
+];
+
+function getChineseInitial(char) {
+  if (!/[\u4e00-\u9fa5]/.test(char)) return char.toLowerCase();
+  for (let i = PINYIN_BOUNDARIES.length - 1; i >= 0; i--) {
+    if (char.localeCompare(PINYIN_BOUNDARIES[i][1], 'zh-Hans-CN') >= 0) {
+      return PINYIN_BOUNDARIES[i][0];
+    }
+  }
+  return char.toLowerCase();
+}
+
+function toPinyinInitials(str) {
+  if (!str || typeof str !== 'string') return '';
+  return Array.from(str).map(getChineseInitial).join('');
+}
+
+/**
+ * 高级搜索语法解析器 (Filter Syntax Parser)
+ * 支持像 Notion / GitHub 一样在搜索框中敲语法：
+ * - title:BOM (限定标题检索)
+ * - tag:SAP 或 #SAP (限定标签检索)
+ * - path:技术/SAP 或 notebook:技术 (限定文档路径)
+ * - has:code (仅筛选含代码块的笔记)
+ * - has:image (仅筛选含截图或图片的笔记)
+ * - -排除词 (负向反选排除)
+ */
+function parseSearchQuery(rawQuery) {
+  const result = {
+    raw: rawQuery || '',
+    cleanKeywords: [],    // 普通关键词
+    titleFilters: [],     // title:xxx
+    tagFilters: [],       // tag:xxx
+    pathFilters: [],      // path:xxx
+    excludeFilters: [],   // -xxx
+    hasCode: false,       // has:code
+    hasImage: false,      // has:image
+  };
+
+  if (!rawQuery || typeof rawQuery !== 'string') return result;
+
+  const regex = /(-?[a-zA-Z_]+:"[^"]+"|-?[a-zA-Z_]+:\S+|"[^"]+"|-\S+|\S+)/g;
+  const tokens = rawQuery.match(regex) || [];
+
+  for (let token of tokens) {
+    token = token.trim();
+    if (!token) continue;
+
+    if (/^has:code$/i.test(token)) {
+      result.hasCode = true;
+      continue;
+    }
+    if (/^has:(image|img|pic|photo)$/i.test(token)) {
+      result.hasImage = true;
+      continue;
+    }
+
+    const titleMatch = token.match(/^title:(.+)$/i);
+    if (titleMatch) {
+      result.titleFilters.push(titleMatch[1].replace(/^"|"$/g, '').toLowerCase());
+      continue;
+    }
+
+    const tagMatch = token.match(/^tag:(.+)$/i);
+    if (tagMatch) {
+      result.tagFilters.push(tagMatch[1].replace(/^"|"$/g, '').toLowerCase());
+      continue;
+    }
+
+    const pathMatch = token.match(/^(path|notebook|dir):(.+)$/i);
+    if (pathMatch) {
+      result.pathFilters.push(pathMatch[2].replace(/^"|"$/g, '').toLowerCase());
+      continue;
+    }
+
+    if (token.startsWith('-') && token.length > 1) {
+      const exWord = token.slice(1).replace(/^"|"$/g, '').toLowerCase();
+      if (exWord) {
+        result.excludeFilters.push(exWord);
+      }
+      continue;
+    }
+
+    if (token.startsWith('#') && token.length > 1) {
+      result.tagFilters.push(token.slice(1).toLowerCase());
+      continue;
+    }
+
+    const cleanWord = token.replace(/^"|"$/g, '');
+    if (cleanWord) {
+      result.cleanKeywords.push(cleanWord);
+    }
+  }
+
+  return result;
+}
+
+// 搜索历史持久化管理器
+const SEARCH_HISTORY_KEY = 'edgeever.enhancing_search.history';
+const MAX_SEARCH_HISTORY = 12;
+
+function getSearchHistory() {
+  try {
+    const raw = localStorage.getItem(SEARCH_HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveSearchHistory(query) {
+  const q = (query || '').trim();
+  if (!q) return;
+  try {
+    let list = getSearchHistory().filter((item) => item !== q);
+    list.unshift(q);
+    if (list.length > MAX_SEARCH_HISTORY) list = list.slice(0, MAX_SEARCH_HISTORY);
+    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(list));
+  } catch (e) {}
+}
+
+function removeSearchHistory(targetQuery) {
+  try {
+    let list = getSearchHistory().filter((item) => item !== targetQuery);
+    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(list));
+  } catch (e) {}
+}
+
+function clearAllSearchHistory() {
+  try {
+    localStorage.removeItem(SEARCH_HISTORY_KEY);
+  } catch (e) {}
+}
+
 // ==================== 2. 全库笔记获取与检索引擎 ====================
 
 class EnhancedSearchEngine {
@@ -337,13 +480,26 @@ class EnhancedSearchEngine {
           const nbName = item.notebookName || item.notebook?.name || "默认笔记本";
           const nbPath = this.resolveNotebookPath(item.notebookId) || nbName;
 
+          const titleStr = (item.title || "").trim() || "无标题笔记";
+          const tagsArr = Array.isArray(item.tags) ? item.tags : [];
+          const hasCode = Boolean(/(```|<code>|<pre>)/i.test(rawMd || excerptText));
+          const hasImage = Boolean(/(!\[.*?\]\(|<img\s|edgeever-resource:\/\/)/i.test(rawMd || excerptText));
+          const titleInit = toPinyinInitials(titleStr);
+          const cleanTitleInit = titleInit.replace(/[^a-z0-9]/gi, "");
+          const tagsInit = tagsArr.map((t) => toPinyinInitials(String(t))).join(" ");
+
           allNotes.push({
             id: item.id,
-            title: (item.title || "").trim() || "无标题笔记",
+            title: titleStr,
             excerpt: excerptText,
             contentMarkdown: rawMd,
             plainText: stripMarkdown(rawMd) || excerptText,
-            tags: Array.isArray(item.tags) ? item.tags : [],
+            tags: tagsArr,
+            titleInitials: titleInit,
+            cleanTitleInitials: cleanTitleInit,
+            tagsInitials: tagsInit,
+            hasCode,
+            hasImage,
             notebookId: item.notebookId || item.notebook_id || "",
             notebookName: nbName,
             notebookPath: nbPath,
@@ -383,20 +539,38 @@ class EnhancedSearchEngine {
         const md = full.contentMarkdown || full.content || "";
         const pt = stripMarkdown(md) || full.excerpt || full.contentText || "";
         const nbPath = this.resolveNotebookPath(full.notebookId) || full.notebookName || "默认笔记本";
+        const titleStr = (full.title || "").trim() || "无标题笔记";
+        const tagsArr = Array.isArray(full.tags) ? full.tags : [];
+        const hasCode = Boolean(/(```|<code>|<pre>)/i.test(md || pt));
+        const hasImage = Boolean(/(!\[.*?\]\(|<img\s|edgeever-resource:\/\/)/i.test(md || pt));
+        const titleInit = toPinyinInitials(titleStr);
+        const cleanTitleInit = titleInit.replace(/[^a-z0-9]/gi, "");
+        const tagsInit = tagsArr.map((t) => toPinyinInitials(String(t))).join(" ");
+
         if (cached) {
           cached.contentMarkdown = md;
           cached.plainText = pt;
           if (full.notebookName) cached.notebookName = full.notebookName;
           cached.notebookPath = nbPath;
-          if (full.tags && Array.isArray(full.tags)) cached.tags = full.tags;
+          cached.tags = tagsArr;
+          cached.hasCode = hasCode;
+          cached.hasImage = hasImage;
+          cached.titleInitials = titleInit;
+          cached.cleanTitleInitials = cleanTitleInit;
+          cached.tagsInitials = tagsInit;
           return cached;
         }
         return {
           id: full.id,
-          title: (full.title || "").trim() || "无标题笔记",
+          title: titleStr,
           contentMarkdown: md,
           plainText: pt,
-          tags: full.tags || [],
+          tags: tagsArr,
+          titleInitials: titleInit,
+          cleanTitleInitials: cleanTitleInit,
+          tagsInitials: tagsInit,
+          hasCode,
+          hasImage,
           notebookId: full.notebookId || "",
           notebookName: full.notebookName || "默认笔记本",
           notebookPath: nbPath,
@@ -452,30 +626,19 @@ class EnhancedSearchEngine {
   }
 
   /**
-   * 复合多条件搜索与打分过滤
+   * 复合多条件搜索与打分过滤 (支持语法解析与拼音首字母简拼检索)
    */
   search(notes, options = {}) {
     const rawQuery = (options.query || "").trim();
-    const dateRange = options.dateRange || "all"; // all, today, week, month, year
-    const dateField = options.dateField || "updated"; // updated, created
-    const sortMode = options.sortMode || "relevance"; // relevance, updated_desc, created_desc, title_asc
+    const dateRange = options.dateRange || "all";
+    const dateField = options.dateField || "updated";
+    const sortMode = options.sortMode || "relevance";
     const selectedTag = options.selectedTag || "";
 
-    // 1. 解析查询语法（分离关键词与标签语法，例如输入: "#前端 react hooks"）
-    let tagFilters = [];
+    // 1. 高级语法解析 (支持 title:, tag:, path:, has:code, has:image, -排除词)
+    const parsed = parseSearchQuery(rawQuery);
     if (selectedTag) {
-      tagFilters.push(selectedTag.toLowerCase());
-    }
-
-    const queryKeywords = [];
-    const tokens = rawQuery.split(/\s+/).filter(Boolean);
-
-    for (const token of tokens) {
-      if (token.startsWith("#") && token.length > 1) {
-        tagFilters.push(token.slice(1).toLowerCase());
-      } else {
-        queryKeywords.push(token);
-      }
+      parsed.tagFilters.push(selectedTag.toLowerCase());
     }
 
     // 2. 时间过滤阈值计算
@@ -494,50 +657,102 @@ class EnhancedSearchEngine {
     const results = [];
 
     for (const note of notes) {
-      // 时间过滤
+      // 1) 时间过滤
       const targetTimeVal = dateField === "created" ? new Date(note.createdAt).getTime() : new Date(note.updatedAt).getTime();
       if (minTime > 0 && targetTimeVal < minTime) {
         continue;
       }
 
-      // 标签过滤
-      if (tagFilters.length > 0) {
+      // 2) 负向排除词过滤 (-排除词)
+      if (parsed.excludeFilters.length > 0) {
+        const lowerTitle = note.title.toLowerCase();
+        const lowerPlain = note.plainText.toLowerCase();
+        const hasExcluded = parsed.excludeFilters.some((ex) => lowerTitle.includes(ex) || lowerPlain.includes(ex));
+        if (hasExcluded) {
+          continue;
+        }
+      }
+
+      // 3) has:code 过滤 (只筛选包含代码块的笔记)
+      if (parsed.hasCode && !note.hasCode) {
+        continue;
+      }
+
+      // 4) has:image 过滤 (只筛选包含图片的笔记)
+      if (parsed.hasImage && !note.hasImage) {
+        continue;
+      }
+
+      // 5) path:... 或 notebook:... 路径限定过滤
+      if (parsed.pathFilters.length > 0) {
+        const fullPath = (note.notebookPath || note.notebookName || "").toLowerCase();
+        const pathMatch = parsed.pathFilters.every((pf) => fullPath.includes(pf));
+        if (!pathMatch) {
+          continue;
+        }
+      }
+
+      // 6) title:... 标题精准/拼音限定过滤
+      if (parsed.titleFilters.length > 0) {
+        const lowerTitle = note.title.toLowerCase();
+        const cleanInit = note.cleanTitleInitials || "";
+        const titleMatch = parsed.titleFilters.every((tf) => lowerTitle.includes(tf) || cleanInit.includes(tf));
+        if (!titleMatch) {
+          continue;
+        }
+      }
+
+      // 7) tag:... 标签过滤 (支持多标签与拼音简拼)
+      if (parsed.tagFilters.length > 0) {
         const noteTagsLower = note.tags.map((t) => String(t).toLowerCase());
-        const hasAllTags = tagFilters.every((tf) => noteTagsLower.some((nt) => nt.includes(tf)));
+        const tagsInitStr = note.tagsInitials || "";
+        const hasAllTags = parsed.tagFilters.every((tf) => 
+          noteTagsLower.some((nt) => nt.includes(tf)) || tagsInitStr.includes(tf)
+        );
         if (!hasAllTags) {
           continue;
         }
       }
 
-      // 关键词匹配与评分计算
+      // 8) 普通关键词评分与拼音首字母检索
       let score = 0;
       const lowerTitle = note.title.toLowerCase();
       const lowerPlain = note.plainText.toLowerCase();
+      const cleanInit = note.cleanTitleInitials || "";
+      const tagsInitStr = note.tagsInitials || "";
 
-      if (queryKeywords.length > 0) {
+      if (parsed.cleanKeywords.length > 0) {
         let allKeywordsMatch = true;
 
-        for (const kw of queryKeywords) {
+        for (const kw of parsed.cleanKeywords) {
           const lkw = kw.toLowerCase();
           const inTitle = lowerTitle.includes(lkw);
-          const inBody = lowerPlain.includes(lkw);
+          const inTitlePinyin = cleanInit.includes(lkw.replace(/[^a-z0-9]/gi, ""));
           const inTags = note.tags.some((t) => String(t).toLowerCase().includes(lkw));
+          const inTagsPinyin = tagsInitStr.includes(lkw.replace(/[^a-z0-9]/gi, ""));
+          const inBody = lowerPlain.includes(lkw);
 
-          if (!inTitle && !inBody && !inTags) {
+          if (!inTitle && !inTitlePinyin && !inTags && !inTagsPinyin && !inBody) {
             allKeywordsMatch = false;
             break;
           }
 
           if (inTitle) {
-            score += 60;
-            if (lowerTitle === lkw) score += 40;
+            score += 70;
+            if (lowerTitle === lkw) score += 50;
+          } else if (inTitlePinyin) {
+            // 拼音首字母命中加权 (例如输入 csbom 命中 32.BOM展开 CS_BOM_EXPL_MAT_V2)
+            score += 55;
           }
+
           if (inTags) {
             score += 35;
+          } else if (inTagsPinyin) {
+            score += 25;
           }
+
           if (inBody) {
             score += 15;
-            // 简单频率奖励
             const count = (lowerPlain.match(new RegExp(escapeRegExp(lkw), "g")) || []).length;
             score += Math.min(25, count * 3);
           }
@@ -547,18 +762,22 @@ class EnhancedSearchEngine {
           continue;
         }
       } else {
-        // 无关键词时，只要符合标签与时间即算命中
+        // 无普通关键词时（如仅通过语法/时间筛选，或者纯缺省）
         score = 1;
       }
 
-      // 时间加成（近7天编辑轻微加权，使得同分近期的排前面）
+      // 包含语法指令时的特定加分
+      if (parsed.titleFilters.length > 0) score += 30;
+      if (parsed.tagFilters.length > 0) score += 20;
+
+      // 时间微弱加成 (保证同等相关度下近期活跃笔记排前)
       const ageDays = (now - targetTimeVal) / (1000 * 60 * 60 * 24);
       if (ageDays < 7) score += 5;
 
       results.push({
         ...note,
         score,
-        snippet: this.generateSnippet(note.plainText, queryKeywords),
+        snippet: this.generateSnippet(note.plainText, parsed.cleanKeywords),
       });
     }
 
@@ -582,7 +801,8 @@ class EnhancedSearchEngine {
 
     return {
       results,
-      queryKeywords,
+      parsedQuery: parsed,
+      queryKeywords: parsed.cleanKeywords,
       totalCount: results.length,
     };
   }
@@ -663,7 +883,7 @@ function openSearchModal(context, engine) {
             </svg>
           </div>
           <div class="edgeever-search-title-group">
-            <h2>全库增强搜索 <span class="edgeever-search-version-badge">v1.0.7</span></h2>
+            <h2>全库增强搜索 <span class="edgeever-search-version-badge">v1.0.8</span></h2>
             <div class="edgeever-search-subtitle">全库秒级检索、分词高亮定位与双栏沉浸式卡片预览</div>
           </div>
         </div>
@@ -909,6 +1129,11 @@ function openSearchModal(context, engine) {
     try {
       const searchKeyword = activeKeywords && activeKeywords.length > 0 ? activeKeywords.join(" ") : undefined;
 
+      // 保存搜索历史
+      if (inputEl && inputEl.value && inputEl.value.trim()) {
+        saveSearchHistory(inputEl.value.trim());
+      }
+
       // 1. EdgeEver 官方标准导航 API (支持在打开后自动高亮定位关键词)
       if (context.ui?.openNote) {
         await context.ui.openNote(note.id, searchKeyword ? { search: searchKeyword } : undefined);
@@ -929,14 +1154,97 @@ function openSearchModal(context, engine) {
   // 渲染左侧结果列表
   function renderList() {
     listContainer.innerHTML = "";
+    const currentQueryVal = inputEl.value.trim();
+
+    // 缺省态：展示“最近搜索历史”与“语法快捷助手”
+    if (!currentQueryVal) {
+      const historyList = getSearchHistory();
+      if (historyList.length > 0) {
+        const historySection = document.createElement("div");
+        historySection.className = "edgeever-search-history-box";
+        historySection.innerHTML = `
+          <div class="edgeever-search-section-header">
+            <span class="edgeever-section-title">🔍 最近搜索历史</span>
+            <button type="button" class="edgeever-history-clear-btn" id="ee-clear-history-btn" title="清空全部历史记录">清空历史</button>
+          </div>
+          <div class="edgeever-history-chips">
+            ${historyList.map((q) => `
+              <span class="edgeever-history-chip" data-history="${escapeHtml(q)}">
+                <span class="ee-history-text">${escapeHtml(q)}</span>
+                <span class="ee-history-del" data-del="${escapeHtml(q)}" title="删除此记录">✕</span>
+              </span>
+            `).join("")}
+          </div>
+        `;
+
+        // 历史标签交互
+        historySection.addEventListener("click", (e) => {
+          const delTarget = e.target.closest("[data-del]");
+          if (delTarget) {
+            e.stopPropagation();
+            const targetQuery = delTarget.getAttribute("data-del");
+            removeSearchHistory(targetQuery);
+            renderList();
+            return;
+          }
+          if (e.target.id === "ee-clear-history-btn") {
+            e.stopPropagation();
+            clearAllSearchHistory();
+            renderList();
+            return;
+          }
+          const chip = e.target.closest("[data-history]");
+          if (chip) {
+            const hVal = chip.getAttribute("data-history");
+            inputEl.value = hVal;
+            inputEl.focus();
+            doSearch();
+          }
+        });
+
+        listContainer.appendChild(historySection);
+      }
+
+      // 语法快捷插入小条
+      const syntaxHelper = document.createElement("div");
+      syntaxHelper.className = "edgeever-syntax-quick-bar";
+      syntaxHelper.innerHTML = `
+        <span class="ee-syntax-tip">⚡ 语法助手：</span>
+        <button type="button" class="ee-syntax-pill" data-insert="title:">title:标题</button>
+        <button type="button" class="ee-syntax-pill" data-insert="tag:">tag:标签</button>
+        <button type="button" class="ee-syntax-pill" data-insert="path:">path:路径</button>
+        <button type="button" class="ee-syntax-pill" data-insert="has:code">has:code</button>
+        <button type="button" class="ee-syntax-pill" data-insert="has:image">has:image</button>
+        <button type="button" class="ee-syntax-pill" data-insert="-">-排除词</button>
+      `;
+      syntaxHelper.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-insert]");
+        if (btn) {
+          const insertStr = btn.getAttribute("data-insert");
+          inputEl.value = (inputEl.value.trim() ? inputEl.value.trim() + " " : "") + insertStr;
+          inputEl.focus();
+          doSearch();
+        }
+      });
+      listContainer.appendChild(syntaxHelper);
+
+      // 分组标题：最近活跃工作区
+      const recentHeader = document.createElement("div");
+      recentHeader.className = "edgeever-search-section-header is-sticky";
+      recentHeader.innerHTML = `<span class="edgeever-section-title">🕒 最近活跃工作区（最近编辑）</span>`;
+      listContainer.appendChild(recentHeader);
+    }
 
     if (currentResults.length === 0) {
-      listContainer.innerHTML = `
-        <div class="edgeever-search-empty-state">
-          <div class="edgeever-search-empty-title">无匹配笔记</div>
-          <div class="edgeever-search-empty-desc">换个关键词试试，或扩大时间范围</div>
+      const emptyBox = document.createElement("div");
+      emptyBox.className = "edgeever-search-empty-state";
+      emptyBox.innerHTML = `
+        <div class="edgeever-search-empty-title">未找到匹配笔记</div>
+        <div class="edgeever-search-empty-desc">
+          尝试使用高级语法：<code>title:标题</code>、<code>tag:标签</code>、<code>has:code</code>、<code>has:image</code>、<code>-排除</code> 或直接敲拼音首字母（如 <code>csbom</code>）
         </div>
       `;
+      listContainer.appendChild(emptyBox);
       renderPreview(null);
       return;
     }
@@ -950,7 +1258,7 @@ function openSearchModal(context, engine) {
       card.className = `edgeever-search-card ${idx === selectedIndex ? "is-selected" : ""}`;
       card.dataset.index = idx;
 
-      // 标题高亮
+      // 标题高亮 (支持拼音高亮兼容)
       let titleHtml = escapeHtml(note.title);
       for (const kw of activeKeywords) {
         if (!kw) continue;
@@ -962,6 +1270,12 @@ function openSearchModal(context, engine) {
       const tagsPills = note.tags && note.tags.length > 0
         ? note.tags.slice(0, 3).map((t) => `<span class="edgeever-meta-tag is-user-tag">#${escapeHtml(t)}</span>`).join("")
         : "";
+
+      // 特征小徽章 (代码 / 图片)
+      const featureBadges = `
+        ${note.hasCode ? '<span class="edgeever-meta-tag is-feature" title="包含代码块">💻 代码</span>' : ''}
+        ${note.hasImage ? '<span class="edgeever-meta-tag is-feature" title="包含插图或图片">🖼️ 图片</span>' : ''}
+      `;
 
       const timeVal = dateField === "created" ? note.createdAt : note.updatedAt;
       const displayPath = note.notebookPath || note.notebookName || "默认笔记本";
@@ -977,6 +1291,7 @@ function openSearchModal(context, engine) {
         <div class="edgeever-search-card-meta">
           <span class="edgeever-meta-tag is-path" title="文档完整路径：${escapeHtml(displayPath)}">📂 ${escapeHtml(displayPath)}</span>
           ${tagsPills}
+          ${featureBadges}
         </div>
         <div class="edgeever-search-card-snippet">
           ${note.snippet}
