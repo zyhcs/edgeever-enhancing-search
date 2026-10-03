@@ -654,7 +654,33 @@ function openSearchModal(context, engine) {
 
   backdrop.innerHTML = `
     <div class="edgeever-search-modal" role="dialog" aria-modal="true">
-      <!-- 顶部搜索输入与过滤工具栏 -->
+      <!-- 1. 顶栏 Header (完全看齐开源热榜与竞品调研插件设计) -->
+      <div class="edgeever-search-modal-header">
+        <div class="edgeever-search-header-left">
+          <div class="edgeever-search-logo-box">
+            <svg viewBox="0 0 24 24">
+              <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            </svg>
+          </div>
+          <div class="edgeever-search-title-group">
+            <h2>全库增强搜索 <span class="edgeever-search-version-badge">v1.0.7</span></h2>
+            <div class="edgeever-search-subtitle">全库秒级检索、分词高亮定位与双栏沉浸式卡片预览</div>
+          </div>
+        </div>
+
+        <div class="edgeever-search-header-right">
+          <!-- 顶栏时间周期 Tab 切换 -->
+          <div class="edgeever-search-range-tabs">
+            <button type="button" class="edgeever-search-tab-btn is-active" data-range="all">⚡ 全部时间</button>
+            <button type="button" class="edgeever-search-tab-btn" data-range="today">📅 今天</button>
+            <button type="button" class="edgeever-search-tab-btn" data-range="week">🚀 最近7天</button>
+            <button type="button" class="edgeever-search-tab-btn" data-range="month">🌕 最近30天</button>
+          </div>
+          <button type="button" class="edgeever-search-close-btn" id="ee-search-top-close" title="关闭 (Esc)">✕</button>
+        </div>
+      </div>
+
+      <!-- 2. 搜索控制栏 (输入框 + 排序与刷新) -->
       <div class="edgeever-search-header">
         <div class="edgeever-search-input-wrap">
           <div class="edgeever-search-input-icon">
@@ -665,7 +691,7 @@ function openSearchModal(context, engine) {
           <input 
             type="text" 
             class="edgeever-search-input" 
-            placeholder="全库增强搜索：输入关键字、#标签、按时间快速筛选..." 
+            placeholder="输入关键字检索全库笔记、#标签、支持多词空格分词与精准高亮..." 
             autofocus 
           />
           <button type="button" class="edgeever-search-clear-btn" title="清空搜索内容" style="display: none;">
@@ -678,40 +704,35 @@ function openSearchModal(context, engine) {
 
         <div class="edgeever-search-filter-bar">
           <div class="edgeever-search-filter-left">
-            <button type="button" class="edgeever-filter-pill is-active" data-range="all">全部时间</button>
-            <button type="button" class="edgeever-filter-pill" data-range="today">今天</button>
-            <button type="button" class="edgeever-filter-pill" data-range="week">最近7天</button>
-            <button type="button" class="edgeever-filter-pill" data-range="month">最近30天</button>
-
-            <!-- 时间基准 -->
+            <span class="edgeever-filter-label-tip">筛选基准：</span>
             <select class="edgeever-filter-select" id="ee-search-date-field" title="切换筛选时间基准">
-              <option value="updated">🕒 按修改时间</option>
-              <option value="created">📅 按创建时间</option>
+              <option value="updated">🕒 按最后修改时间</option>
+              <option value="created">📅 按最初创建时间</option>
             </select>
           </div>
 
           <div class="edgeever-search-filter-right">
-            <!-- 排序方式 -->
+            <span class="edgeever-filter-label-tip">排序规则：</span>
             <select class="edgeever-filter-select" id="ee-search-sort-mode" title="搜索结果排序规则">
               <option value="relevance">🎯 智能相关度优先</option>
-              <option value="updated_desc">🕒 最近修改时间</option>
-              <option value="created_desc">📅 最新创建时间</option>
-              <option value="title_asc">🔤 标题字典顺序</option>
+              <option value="updated_desc">🕒 最近修改优先</option>
+              <option value="created_desc">📅 最新创建优先</option>
+              <option value="title_asc">🔤 标题首字母顺序</option>
             </select>
-            <button type="button" class="edgeever-filter-pill" id="ee-search-refresh-btn" title="强制重新拉取最新笔记索引">
+            <button type="button" class="edgeever-filter-pill is-btn" id="ee-search-refresh-btn" title="重新从数据库扫描全库最新笔记">
               🔄 刷新索引
             </button>
           </div>
         </div>
       </div>
 
-      <!-- 双栏核心内容视口 -->
+      <!-- 3. 双栏核心内容视口 -->
       <div class="edgeever-search-main">
-        <!-- 左栏：卡片结果列表 -->
+        <!-- 左栏：卡片结果列表 (参考热榜插件卡片流) -->
         <div class="edgeever-search-results-pane">
           <div class="edgeever-search-stats-bar">
             <span id="ee-search-stats-text">正在检索全库笔记...</span>
-            <span id="ee-search-time-cost" style="color: var(--ee-search-primary); font-weight: 500;"></span>
+            <span id="ee-search-time-cost" style="color: var(--ee-search-primary); font-weight: 600;"></span>
           </div>
           <div class="edgeever-search-cards-list" id="ee-search-list-container">
             <!-- 动态卡片 -->
@@ -746,7 +767,7 @@ function openSearchModal(context, engine) {
         </div>
       </div>
 
-      <!-- 底部状态与快捷键提示 -->
+      <!-- 4. 底部状态与快捷键提示 -->
       <div class="edgeever-search-footer">
         <div class="edgeever-search-shortcuts">
           <span class="edgeever-search-shortcut-item"><kbd>↑</kbd> <kbd>↓</kbd> 切换卡片</span>
@@ -947,7 +968,10 @@ function openSearchModal(context, engine) {
 
       card.innerHTML = `
         <div class="edgeever-search-card-header">
-          <div class="edgeever-search-card-title">${titleHtml}</div>
+          <div class="edgeever-search-card-title-wrap">
+            <span class="edgeever-search-badge-rank">${idx + 1}</span>
+            <div class="edgeever-search-card-title">${titleHtml}</div>
+          </div>
           <div class="edgeever-search-card-time">${formatRelativeTime(timeVal)}</div>
         </div>
         <div class="edgeever-search-card-meta">
@@ -1027,12 +1051,18 @@ function openSearchModal(context, engine) {
     doSearch();
   });
 
-  // 时间维度 Pills 切换
-  backdrop.querySelectorAll(".edgeever-filter-pill[data-range]").forEach((pill) => {
-    pill.addEventListener("click", () => {
-      backdrop.querySelectorAll(".edgeever-filter-pill[data-range]").forEach((p) => p.classList.remove("is-active"));
-      pill.classList.add("is-active");
-      dateRange = pill.dataset.range;
+  // 顶部关闭按钮
+  const topCloseBtn = backdrop.querySelector("#ee-search-top-close");
+  if (topCloseBtn) {
+    topCloseBtn.addEventListener("click", closeModal);
+  }
+
+  // 顶栏时间维度 Tab 切换 (与热榜插件完全一致)
+  backdrop.querySelectorAll(".edgeever-search-tab-btn[data-range]").forEach((tabBtn) => {
+    tabBtn.addEventListener("click", () => {
+      backdrop.querySelectorAll(".edgeever-search-tab-btn[data-range]").forEach((b) => b.classList.remove("is-active"));
+      tabBtn.classList.add("is-active");
+      dateRange = tabBtn.dataset.range;
       doSearch();
     });
   });

@@ -1,30 +1,32 @@
 /**
  * EdgeEver Enhancing Search Plugin Styles
  * 全库增强搜索 / Enhanced Global Search
- * 沉浸式双栏卡片预览、上下文高亮与插件扩展坞适配
+ * 视觉规范完全对齐 EdgeEver 开源热搜与竞品调研插件 (GitHub Primer 精工质感)
  */
 
 :root,
 .light,
 [data-theme="light"] {
-  --ee-search-primary: var(--brand-green, #10b981);
-  --ee-search-primary-hover: var(--brand-green-hover, #059669);
-  --ee-search-primary-light: rgba(16, 185, 129, 0.1);
-  --ee-search-indigo: #059669;
-  --ee-search-accent: #10b981;
+  --ee-search-primary: #0969da;
+  --ee-search-primary-hover: #0856b3;
+  --ee-search-primary-light: rgba(9, 105, 218, 0.1);
+  --ee-search-accent: #2ea44f;
+  --ee-search-purple: #8250df;
+  --ee-search-orange: #d97706;
+  --ee-search-gold: #d29922;
   --ee-search-bg: #ffffff;
-  --ee-search-surface: #f8fafc;
+  --ee-search-surface: #f6f8fa;
   --ee-search-card-bg: #ffffff;
-  --ee-search-card-hover: #f1f5f9;
-  --ee-search-border: #e2e8f0;
-  --ee-search-border-focus: #10b981;
-  --ee-search-text: #0f172a;
-  --ee-search-text-muted: #64748b;
+  --ee-search-card-hover: #f3f4f6;
+  --ee-search-border: #d0d7de;
+  --ee-search-border-focus: #0969da;
+  --ee-search-text: #1f2328;
+  --ee-search-text-muted: #656d76;
   --ee-search-hl-bg: #fef08a;
   --ee-search-hl-text: #854d0e;
-  --ee-search-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
-  --ee-search-shadow-md: 0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
-  --ee-search-shadow-lg: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+  --ee-search-shadow-sm: 0 1px 3px rgba(31, 35, 40, 0.08);
+  --ee-search-shadow-md: 0 8px 24px rgba(31, 35, 40, 0.12);
+  --ee-search-shadow-lg: 0 16px 40px rgba(31, 35, 40, 0.16);
 }
 
 :root.dark,
@@ -32,24 +34,26 @@ html.dark,
 body.dark,
 [data-theme="dark"],
 .edgeever-search-backdrop.dark {
-  --ee-search-primary: #10b981;
-  --ee-search-primary-hover: #34d399;
-  --ee-search-primary-light: rgba(16, 185, 129, 0.18);
-  --ee-search-indigo: #34d399;
-  --ee-search-accent: #10b981;
-  --ee-search-bg: #141c19;
-  --ee-search-surface: #18221e;
-  --ee-search-card-bg: #1b2622;
-  --ee-search-card-hover: #22302b;
-  --ee-search-border: #283731;
-  --ee-search-border-focus: #10b981;
-  --ee-search-text: #f0fdf4;
-  --ee-search-text-muted: #8fa39a;
+  --ee-search-primary: #2f81f7;
+  --ee-search-primary-hover: #58a6ff;
+  --ee-search-primary-light: rgba(47, 129, 247, 0.15);
+  --ee-search-accent: #238636;
+  --ee-search-purple: #a371f7;
+  --ee-search-orange: #f0883e;
+  --ee-search-gold: #d29922;
+  --ee-search-bg: #0d1117;
+  --ee-search-surface: #161b22;
+  --ee-search-card-bg: #161b22;
+  --ee-search-card-hover: #1c2128;
+  --ee-search-border: #30363d;
+  --ee-search-border-focus: #2f81f7;
+  --ee-search-text: #e6edf3;
+  --ee-search-text-muted: #848d97;
   --ee-search-hl-bg: rgba(250, 204, 21, 0.25);
   --ee-search-hl-text: #fde047;
   --ee-search-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --ee-search-shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-  --ee-search-shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  --ee-search-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --ee-search-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.65);
 }
 
 /* ==================== 1. 入口触发按钮与插件扩展坞 ==================== */
@@ -96,8 +100,7 @@ body.dark,
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* 扩展坞悬浮形态 (FAB) - 极简墨玉黑曜石与薄荷翡翠青质感，完美融入 EdgeEver 客户端 */
-/* 扩展坞悬浮形态 (FAB) */
+/* 扩展坞悬浮形态 (FAB) - 热榜同款黑曜石与珍珠光感 */
 .edgeever-enhancing-search-trigger-btn.is-dock-btn,
 .edgeever-enhancing-search-trigger-btn.is-fab {
   width: 44px;
@@ -105,43 +108,18 @@ body.dark,
   min-width: 44px;
   min-height: 44px;
   border-radius: 22px;
-  background: var(--ee-search-bg);
-  color: var(--ee-search-primary);
-  border: 1px solid var(--ee-search-border);
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
+  background: linear-gradient(135deg, #1f2328 0%, #0d1117 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
 }
 
 .edgeever-enhancing-search-trigger-btn.is-dock-btn:hover,
 .edgeever-enhancing-search-trigger-btn.is-fab:hover {
-  background: var(--ee-search-card-hover);
-  color: var(--ee-search-primary-hover);
-  border-color: var(--ee-search-primary);
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25);
-}
-
-/* 深色模式下的 FAB 悬浮按钮 */
-:root.dark .edgeever-enhancing-search-trigger-btn.is-dock-btn,
-:root.dark .edgeever-enhancing-search-trigger-btn.is-fab,
-html.dark .edgeever-enhancing-search-trigger-btn.is-dock-btn,
-html.dark .edgeever-enhancing-search-trigger-btn.is-fab,
-[data-theme="dark"] .edgeever-enhancing-search-trigger-btn.is-dock-btn,
-[data-theme="dark"] .edgeever-enhancing-search-trigger-btn.is-fab {
-  background: linear-gradient(135deg, #1b2622 0%, #141c19 100%);
-  color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.28);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-}
-
-:root.dark .edgeever-enhancing-search-trigger-btn.is-dock-btn:hover,
-:root.dark .edgeever-enhancing-search-trigger-btn.is-fab:hover,
-html.dark .edgeever-enhancing-search-trigger-btn.is-dock-btn:hover,
-html.dark .edgeever-enhancing-search-trigger-btn.is-fab:hover,
-[data-theme="dark"] .edgeever-enhancing-search-trigger-btn.is-dock-btn:hover,
-[data-theme="dark"] .edgeever-enhancing-search-trigger-btn.is-fab:hover {
-  background: linear-gradient(135deg, #22302b 0%, #18221e 100%);
-  color: #34d399;
-  border-color: #10b981;
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.28);
+  background: linear-gradient(135deg, #2d333b 0%, #161b22 100%);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  color: var(--ee-search-primary);
 }
 
 .edgeever-enhancing-search-trigger-btn.is-dock-btn svg,
@@ -161,7 +139,7 @@ html.dark .edgeever-enhancing-search-trigger-btn.is-fab:hover,
   padding: 0;
   border-radius: 6px;
   color: var(--ee-search-text);
-  opacity: 0.8;
+  opacity: 0.82;
 }
 
 .edgeever-enhancing-search-trigger-btn.is-sidebar-btn:hover {
@@ -207,23 +185,23 @@ html.dark .edgeever-enhancing-search-trigger-btn.is-fab:hover,
 .edgeever-search-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.4);
+  background: rgba(15, 23, 42, 0.65);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   z-index: 99999;
-  padding: 60px 24px 40px;
-  animation: eeSearchFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 24px;
+  animation: eeSearchFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   box-sizing: border-box;
 }
 
 .edgeever-search-backdrop.dark {
-  background: rgba(10, 16, 14, 0.72);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(1, 4, 9, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 @keyframes eeSearchFadeIn {
@@ -233,28 +211,159 @@ html.dark .edgeever-enhancing-search-trigger-btn.is-fab:hover,
 
 .edgeever-search-modal {
   width: 100%;
-  max-width: 1100px;
-  height: 82vh;
+  max-width: 1140px;
+  height: 88vh;
   max-height: 860px;
-  min-height: 520px;
+  min-height: 560px;
   background: var(--ee-search-bg);
   border: 1px solid var(--ee-search-border);
-  border-radius: 18px;
+  border-radius: 16px;
   box-shadow: var(--ee-search-shadow-lg);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   box-sizing: border-box;
+  color: var(--ee-search-text);
+  animation: eeSearchSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* ==================== 3. 顶部搜索框与快捷过滤工具栏 ==================== */
+@keyframes eeSearchSlideUp {
+  from { opacity: 0; transform: translateY(18px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ==================== 2.5 顶部品牌栏 (完全看齐热榜插件顶栏) ==================== */
+.edgeever-search-modal-header {
+  height: 64px;
+  padding: 0 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--ee-search-border);
+  background: var(--ee-search-bg);
+  flex-shrink: 0;
+}
+
+.edgeever-search-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.edgeever-search-logo-box {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #1f2328 0%, #24292f 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.edgeever-search-logo-box svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+.edgeever-search-title-group h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--ee-search-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edgeever-search-version-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 12px;
+  background: var(--ee-search-primary-light);
+  color: var(--ee-search-primary);
+}
+
+.edgeever-search-subtitle {
+  font-size: 12px;
+  color: var(--ee-search-text-muted);
+  margin-top: 2px;
+}
+
+.edgeever-search-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 顶栏周期 Tab 切换 (与热榜插件右上角 Tab 完全一致) */
+.edgeever-search-range-tabs {
+  display: flex;
+  background: var(--ee-search-surface);
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid var(--ee-search-border);
+}
+
+.edgeever-search-tab-btn {
+  border: none;
+  background: transparent;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ee-search-text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.edgeever-search-tab-btn:hover {
+  color: var(--ee-search-text);
+}
+
+.edgeever-search-tab-btn.is-active {
+  background: var(--ee-search-bg);
+  color: var(--ee-search-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.edgeever-search-close-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--ee-search-text-muted);
+  font-size: 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.edgeever-search-close-btn:hover {
+  background: rgba(128, 128, 128, 0.14);
+  color: var(--ee-search-text);
+}
+
+/* ==================== 3. 搜索框与控制工具栏 ==================== */
 .edgeever-search-header {
-  padding: 16px 20px 12px;
+  padding: 14px 22px 12px;
   background: var(--ee-search-surface);
   border-bottom: 1px solid var(--ee-search-border);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   flex-shrink: 0;
 }
 
@@ -263,11 +372,11 @@ html.dark .edgeever-enhancing-search-trigger-btn.is-fab:hover,
   align-items: center;
   gap: 12px;
   background: var(--ee-search-bg);
-  border: 1.5px solid var(--ee-search-border);
-  border-radius: 12px;
-  padding: 8px 16px;
+  border: 1px solid var(--ee-search-border);
+  border-radius: 8px;
+  padding: 8px 14px;
   box-shadow: var(--ee-search-shadow-sm);
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
 }
 
 .edgeever-search-input-wrap:focus-within {
@@ -276,8 +385,8 @@ html.dark .edgeever-enhancing-search-trigger-btn.is-fab:hover,
 }
 
 .edgeever-search-input-icon {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   color: var(--ee-search-primary);
   flex-shrink: 0;
   display: flex;
@@ -286,8 +395,8 @@ html.dark .edgeever-enhancing-search-trigger-btn.is-fab:hover,
 }
 
 .edgeever-search-input-icon svg {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   fill: currentColor;
 }
 
@@ -296,7 +405,7 @@ html.dark .edgeever-enhancing-search-trigger-btn.is-fab:hover,
   background: transparent;
   border: none;
   outline: none;
-  font-size: 16px;
+  font-size: 14.5px;
   color: var(--ee-search-text);
   font-weight: 500;
   line-height: 1.5;
@@ -305,6 +414,7 @@ html.dark .edgeever-enhancing-search-trigger-btn.is-fab:hover,
 .edgeever-search-input::placeholder {
   color: var(--ee-search-text-muted);
   font-weight: 400;
+  font-size: 13.5px;
 }
 
 .edgeever-search-clear-btn {
@@ -336,46 +446,60 @@ html.dark .edgeever-enhancing-search-trigger-btn.is-fab:hover,
   font-weight: 600;
   background: var(--ee-search-surface);
   border: 1px solid var(--ee-search-border);
-  border-radius: 6px;
+  border-radius: 5px;
   padding: 2px 7px;
   color: var(--ee-search-text-muted);
   user-select: none;
 }
 
-/* 过滤控制器行 (Filter Bar) */
+/* 过滤工具条 */
 .edgeever-search-filter-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  font-size: 13px;
+  font-size: 12.5px;
 }
 
-.edgeever-search-filter-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
+.edgeever-search-filter-left,
 .edgeever-search-filter-right {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-left: auto;
 }
 
-/* 标签式胶囊筛选按钮 */
-.edgeever-filter-pill {
+.edgeever-filter-label-tip {
+  color: var(--ee-search-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.edgeever-filter-select {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--ee-search-text);
+  background: var(--ee-search-bg);
+  border: 1px solid var(--ee-search-border);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.edgeever-filter-select:focus {
+  border-color: var(--ee-search-primary);
+}
+
+.edgeever-filter-pill.is-btn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 10px;
-  border-radius: 8px;
+  padding: 4px 11px;
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 500;
-  color: var(--ee-search-text-muted);
+  color: var(--ee-search-text);
   background: var(--ee-search-bg);
   border: 1px solid var(--ee-search-border);
   cursor: pointer;
@@ -383,31 +507,9 @@ html.dark .edgeever-enhancing-search-trigger-btn.is-fab:hover,
   user-select: none;
 }
 
-.edgeever-filter-pill:hover {
-  border-color: var(--ee-search-primary);
-  color: var(--ee-search-text);
-}
-
-.edgeever-filter-pill.is-active {
-  background: var(--ee-search-primary-light);
+.edgeever-filter-pill.is-btn:hover {
   border-color: var(--ee-search-primary);
   color: var(--ee-search-primary);
-  font-weight: 600;
-}
-
-.edgeever-filter-select {
-  padding: 4px 8px;
-  border-radius: 8px;
-  font-size: 12px;
-  color: var(--ee-search-text);
-  background: var(--ee-search-bg);
-  border: 1px solid var(--ee-search-border);
-  outline: none;
-  cursor: pointer;
-}
-
-.edgeever-filter-select:focus {
-  border-color: var(--ee-search-primary);
 }
 
 /* ==================== 4. 主内容双栏布局 (列表 + 实时预览) ==================== */
@@ -418,9 +520,9 @@ html.dark .edgeever-enhancing-search-trigger-btn.is-fab:hover,
   position: relative;
 }
 
-/* 左侧结果列表 */
+/* 左侧结果列表 (卡片流) */
 .edgeever-search-results-pane {
-  width: 440px;
+  width: 460px;
   flex-shrink: 0;
   border-right: 1px solid var(--ee-search-border);
   display: flex;
@@ -430,7 +532,7 @@ html.dark .edgeever-enhancing-search-trigger-btn.is-fab:hover,
 }
 
 .edgeever-search-stats-bar {
-  padding: 8px 16px;
+  padding: 10px 18px;
   font-size: 12px;
   color: var(--ee-search-text-muted);
   border-bottom: 1px solid var(--ee-search-border);
@@ -444,39 +546,40 @@ html.dark .edgeever-enhancing-search-trigger-btn.is-fab:hover,
 .edgeever-search-cards-list {
   flex: 1;
   overflow-y: auto;
-  padding: 10px 12px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
-/* 结果卡片 (严禁被弹性盒压缩，保证标题、标签与摘要完整舒展) */
+/* 结果卡片 (完全看齐热榜插件卡片流) */
 .edgeever-search-card {
   flex-shrink: 0 !important;
   min-height: 84px;
   box-sizing: border-box;
-  padding: 12px 14px;
+  padding: 14px 16px;
   background: var(--ee-search-card-bg);
   border: 1px solid var(--ee-search-border);
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.18s ease;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   position: relative;
   overflow: hidden;
+  box-shadow: var(--ee-search-shadow-sm);
 }
 
 .edgeever-search-card:hover {
   background: var(--ee-search-card-hover);
-  border-color: var(--ee-search-primary);
-  transform: translateY(-1px);
-  box-shadow: var(--ee-search-shadow-sm);
+  border-color: #8c959f;
+  transform: translateY(-2px);
+  box-shadow: var(--ee-search-shadow-md);
 }
 
 .edgeever-search-card.is-selected {
-  background: var(--ee-search-primary-light);
+  background: var(--ee-search-card-hover);
   border-color: var(--ee-search-primary);
   box-shadow: 0 0 0 1px var(--ee-search-primary);
 }
@@ -495,16 +598,44 @@ html.dark .edgeever-enhancing-search-trigger-btn.is-fab:hover,
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  gap: 10px;
+}
+
+.edgeever-search-card-title-wrap {
+  display: flex;
+  align-items: center;
   gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* 金黄色序号小方块 (热榜同款) */
+.edgeever-search-badge-rank {
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, #d29922 0%, #bb8009 100%);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .edgeever-search-card-title {
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 600;
-  color: var(--ee-search-text);
+  color: var(--ee-search-primary);
   line-height: 1.4;
   word-break: break-word;
   flex: 1;
+}
+
+.edgeever-search-card:hover .edgeever-search-card-title {
+  text-decoration: underline;
 }
 
 .edgeever-search-card-time {
@@ -514,7 +645,7 @@ html.dark .edgeever-enhancing-search-trigger-btn.is-fab:hover,
   flex-shrink: 0;
 }
 
-/* 标签与笔记本徽标 */
+/* 标签与路径胶囊 (热榜同款清爽草绿与紫色) */
 .edgeever-search-card-meta {
   display: flex;
   align-items: center;
@@ -526,23 +657,16 @@ html.dark .edgeever-enhancing-search-trigger-btn.is-fab:hover,
   display: inline-flex;
   align-items: center;
   font-size: 11px;
-  padding: 1px 7px;
-  border-radius: 4px;
-  background: rgba(128, 128, 128, 0.12);
-  color: var(--ee-search-text-muted);
-  line-height: 1.4;
+  padding: 2px 7px;
+  border-radius: 5px;
+  line-height: 1.35;
 }
 
-.edgeever-meta-tag.is-notebook {
-  background: rgba(16, 185, 129, 0.12);
-  color: var(--ee-search-primary);
-  font-weight: 500;
-}
-
-/* 层级面包屑路径 (例如: 知识库 / ABAP开发 / 常用代码) */
+/* 路径标签 (热榜同款高级草绿) */
 .edgeever-meta-tag.is-path {
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--ee-search-primary);
+  background: rgba(46, 160, 67, 0.15);
+  color: #3fb950;
+  border: 1px solid rgba(46, 160, 67, 0.25);
   font-weight: 500;
   max-width: 280px;
   overflow: hidden;
@@ -550,14 +674,31 @@ html.dark .edgeever-enhancing-search-trigger-btn.is-fab:hover,
   white-space: nowrap;
 }
 
+.light .edgeever-meta-tag.is-path,
+[data-theme="light"] .edgeever-meta-tag.is-path {
+  background: rgba(46, 160, 67, 0.1);
+  color: #1a7f37;
+  border-color: rgba(46, 160, 67, 0.2);
+}
+
+/* 用户关联标签 (热榜同款极客紫) */
 .edgeever-meta-tag.is-user-tag {
-  background: rgba(16, 185, 129, 0.12);
-  color: var(--ee-search-primary);
+  background: rgba(163, 113, 247, 0.15);
+  color: var(--ee-search-purple);
+  border: 1px solid rgba(163, 113, 247, 0.25);
+  font-weight: 500;
+}
+
+.light .edgeever-meta-tag.is-user-tag,
+[data-theme="light"] .edgeever-meta-tag.is-user-tag {
+  background: rgba(130, 80, 223, 0.1);
+  color: #6639ba;
+  border-color: rgba(130, 80, 223, 0.2);
 }
 
 /* 上下文摘要与高亮 */
 .edgeever-search-card-snippet {
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--ee-search-text-muted);
   line-height: 1.5;
   display: -webkit-box;
@@ -567,7 +708,6 @@ html.dark .edgeever-enhancing-search-trigger-btn.is-fab:hover,
   word-break: break-all;
 }
 
-/* 匹配高亮统一类名 */
 mark.ee-search-hl {
   background: var(--ee-search-hl-bg);
   color: var(--ee-search-hl-text);
@@ -586,7 +726,8 @@ mark.ee-search-hl {
 }
 
 .edgeever-search-preview-header {
-  padding: 14px 20px;
+  height: 52px;
+  padding: 0 20px;
   border-bottom: 1px solid var(--ee-search-border);
   display: flex;
   align-items: center;
@@ -599,12 +740,12 @@ mark.ee-search-hl {
 .edgeever-search-preview-title-wrap {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   overflow: hidden;
 }
 
 .edgeever-search-preview-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--ee-search-text);
   white-space: nowrap;
@@ -624,36 +765,29 @@ mark.ee-search-hl {
   flex-shrink: 0;
 }
 
-.edgeever-preview-action-btn {
+/* 右上角操作大按钮 (完全复刻热榜插件底部绿色渐变大按钮) */
+.edgeever-preview-action-btn.is-primary {
+  height: 32px;
+  padding: 0 16px;
+  border: none;
+  background: linear-gradient(135deg, #2ea44f 0%, #238636 100%);
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 6px 14px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid var(--ee-search-border);
-  background: var(--ee-search-bg);
-  color: var(--ee-search-text);
-  transition: all 0.15s ease;
-}
-
-.edgeever-preview-action-btn:hover {
-  border-color: var(--ee-search-primary);
-  color: var(--ee-search-primary);
-  background: var(--ee-search-primary-light);
-}
-
-.edgeever-preview-action-btn.is-primary {
-  background: var(--ee-search-primary);
-  color: #ffffff;
-  border-color: var(--ee-search-primary);
+  box-shadow: 0 2px 6px rgba(35, 134, 54, 0.25);
+  transition: all 0.18s ease;
 }
 
 .edgeever-preview-action-btn.is-primary:hover {
-  background: var(--ee-search-primary-hover);
-  border-color: var(--ee-search-primary-hover);
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(35, 134, 54, 0.35);
 }
 
 /* 预览正文视口 */
@@ -673,7 +807,7 @@ mark.ee-search-hl {
   gap: 12px;
   background: var(--ee-search-surface);
   border: 1px solid var(--ee-search-border);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 12px 16px;
   margin-bottom: 20px;
 }
@@ -760,7 +894,7 @@ mark.ee-search-hl {
   display: flex;
   flex-direction: column;
   align-items: center;
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
   background: var(--ee-search-surface);
   border: 1px solid var(--ee-search-border);
@@ -867,5 +1001,5 @@ mark.ee-search-hl {
   width: 7px;
   height: 7px;
   border-radius: 4px;
-  background: #22c55e;
+  background: #2ea44f;
 }
