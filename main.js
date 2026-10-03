@@ -213,11 +213,14 @@ class EnhancedSearchEngine {
 
         for (const item of list) {
           if (!item || !item.id) continue;
+          const excerptText = item.excerpt || item.contentText || "";
+          const rawMd = item.contentMarkdown || item.content || item.body || "";
           allNotes.push({
             id: item.id,
             title: (item.title || "").trim() || "无标题笔记",
-            contentMarkdown: item.contentMarkdown || item.content || item.body || "",
-            plainText: stripMarkdown(item.contentMarkdown || item.content || item.body || ""),
+            excerpt: excerptText,
+            contentMarkdown: rawMd,
+            plainText: stripMarkdown(rawMd) || excerptText,
             tags: Array.isArray(item.tags) ? item.tags : [],
             notebookId: item.notebookId || item.notebook_id || "",
             notebookName: item.notebookName || item.notebook?.name || "默认笔记本",
@@ -239,6 +242,46 @@ class EnhancedSearchEngine {
     }
 
     return this.cachedNotes;
+  }
+
+  /**
+   * 异步拉取单篇笔记完整 Markdown 正文并缓存
+   */
+  async getFullNote(noteId) {
+    if (!noteId) return null;
+    const cached = this.cachedNotes.find((n) => n.id === noteId);
+    if (cached && cached.contentMarkdown && cached.contentMarkdown.length > 0) {
+      return cached;
+    }
+
+    try {
+      const full = await this.context.notes.get(noteId);
+      if (full) {
+        const md = full.contentMarkdown || full.content || "";
+        const pt = stripMarkdown(md) || full.excerpt || full.contentText || "";
+        if (cached) {
+          cached.contentMarkdown = md;
+          cached.plainText = pt;
+          if (full.notebookName) cached.notebookName = full.notebookName;
+          if (full.tags && Array.isArray(full.tags)) cached.tags = full.tags;
+          return cached;
+        }
+        return {
+          id: full.id,
+          title: (full.title || "").trim() || "无标题笔记",
+          contentMarkdown: md,
+          plainText: pt,
+          tags: full.tags || [],
+          notebookId: full.notebookId || "",
+          notebookName: full.notebookName || "默认笔记本",
+          createdAt: full.createdAt,
+          updatedAt: full.updatedAt,
+        };
+      }
+    } catch (e) {
+      console.warn("[Enhancing Search] getFullNote 异常:", e);
+    }
+    return cached;
   }
 
   /**
@@ -610,61 +653,84 @@ function openSearchModal(context, engine) {
       ? note.tags.map((t) => `<span class="edgeever-meta-tag is-user-tag">#${escapeHtml(t)}</span>`).join(" ")
       : "<span style='color: var(--ee-search-text-muted); font-size: 12px;'>（无标签）</span>";
 
-    const wordCount = (note.plainText || "").length;
+    const wordCount = (note.plainText || note.excerpt || "").length;
 
-    const metaGridHtml = `
-      <div class="edgeever-preview-meta-grid">
-        <div class="edgeever-preview-meta-item">
-          <span class="edgeever-preview-meta-label">所属笔记本</span>
-          <span class="edgeever-preview-meta-value">${escapeHtml(note.notebookName)}</span>
-        </div>
-        <div class="edgeever-preview-meta-item">
-          <span class="edgeever-preview-meta-label">最后修改时间</span>
-          <span class="edgeever-preview-meta-value">${formatDate(note.updatedAt)}</span>
-        </div>
-        <div class="edgeever-preview-meta-item">
-          <span class="edgeever-preview-meta-label">创建时间</span>
-          <span class="edgeever-preview-meta-value">${formatDate(note.createdAt)}</span>
-        </div>
-        <div class="edgeever-preview-meta-item">
-          <span class="edgeever-preview-meta-label">正文字符数</span>
-          <span class="edgeever-preview-meta-value">${wordCount} 字</span>
-        </div>
-        <div class="edgeever-preview-meta-item" style="grid-column: 1 / -1;">
-          <span class="edgeever-preview-meta-label">关联标签</span>
-          <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px;">
-            ${tagsHtml}
+    const renderMetaAndBody = (targetNote) => {
+      const actualCount = (targetNote.plainText || targetNote.excerpt || "").length;
+      const metaGridHtml = `
+        <div class="edgeever-preview-meta-grid">
+          <div class="edgeever-preview-meta-item">
+            <span class="edgeever-preview-meta-label">所属笔记本</span>
+            <span class="edgeever-preview-meta-value">${escapeHtml(targetNote.notebookName)}</span>
+          </div>
+          <div class="edgeever-preview-meta-item">
+            <span class="edgeever-preview-meta-label">最后修改时间</span>
+            <span class="edgeever-preview-meta-value">${formatDate(targetNote.updatedAt)}</span>
+          </div>
+          <div class="edgeever-preview-meta-item">
+            <span class="edgeever-preview-meta-label">创建时间</span>
+            <span class="edgeever-preview-meta-value">${formatDate(targetNote.createdAt)}</span>
+          </div>
+          <div class="edgeever-preview-meta-item">
+            <span class="edgeever-preview-meta-label">正文字符数</span>
+            <span class="edgeever-preview-meta-value">${actualCount} 字</span>
+          </div>
+          <div class="edgeever-preview-meta-item" style="grid-column: 1 / -1;">
+            <span class="edgeever-preview-meta-label">关联标签</span>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px;">
+              ${tagsHtml}
+            </div>
           </div>
         </div>
-      </div>
-    `;
+      `;
 
-    const bodyHtml = renderMarkdownPreviewHtml(note.contentMarkdown, activeKeywords);
+      const contentToRender = targetNote.contentMarkdown || targetNote.excerpt || "";
+      const bodyHtml = renderMarkdownPreviewHtml(contentToRender, activeKeywords);
 
-    previewBodyEl.innerHTML = `
-      ${metaGridHtml}
-      <div class="edgeever-preview-markdown">
-        ${bodyHtml}
-      </div>
-    `;
+      previewBodyEl.innerHTML = `
+        ${metaGridHtml}
+        <div class="edgeever-preview-markdown">
+          ${bodyHtml}
+        </div>
+      `;
+    };
 
+    // 先用已有的数据快速渲染一次
+    renderMetaAndBody(note);
     previewBodyEl.scrollTop = 0;
+
+    // 如果还没有完整正文，异步在后台拉取并无缝刷新
+    if (!note.contentMarkdown) {
+      const curId = note.id;
+      engine.getFullNote(curId).then((full) => {
+        if (full && currentResults[selectedIndex]?.id === curId) {
+          renderMetaAndBody(full);
+        }
+      }).catch(() => {});
+    }
   }
 
-  // 打开选中笔记
+  // 打开选中笔记 (使用 EdgeEver 官方标准导航 API: context.ui.openNote)
   async function openTargetNote(note) {
     if (!note || !note.id) return;
     try {
-      if (context.editor?.openDocument) {
+      const searchKeyword = activeKeywords && activeKeywords.length > 0 ? activeKeywords.join(" ") : undefined;
+
+      // 1. EdgeEver 官方标准导航 API (支持在打开后自动高亮定位关键词)
+      if (context.ui?.openNote) {
+        await context.ui.openNote(note.id, searchKeyword ? { search: searchKeyword } : undefined);
+      } else if (context.editor?.openDocument) {
         await context.editor.openDocument({ noteId: note.id });
       } else if (context.notes?.open) {
         await context.notes.open(note.id);
       } else if (context.workspace?.openNote) {
         await context.workspace.openNote(note.id);
       }
-      context.notices?.show?.(`已快速打开笔记：《${note.title}》`);
+
+      context.ui?.showNotice?.(`已快速打开笔记：《${note.title}》`);
     } catch (err) {
       console.warn("[Enhancing Search] 打开笔记异常:", err);
+      context.ui?.showNotice?.(`打开笔记失败: ${err.message || err}`);
     }
     closeModal();
   }

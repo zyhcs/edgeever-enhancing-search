@@ -414,8 +414,11 @@
   gap: 8px;
 }
 
-/* 结果卡片 */
+/* 结果卡片 (严禁被弹性盒压缩，保证标题、标签与摘要完整舒展) */
 .edgeever-search-card {
+  flex-shrink: 0 !important;
+  min-height: 84px;
+  box-sizing: border-box;
   padding: 12px 14px;
   background: var(--ee-search-card-bg);
   border: 1px solid var(--ee-search-border);
