@@ -602,6 +602,14 @@ function openSearchModal(context, engine) {
 
   const backdrop = document.createElement("div");
   backdrop.className = "edgeever-search-backdrop";
+  const isHostDark = document.documentElement.classList.contains("dark") || 
+                     document.body.classList.contains("dark") ||
+                     document.documentElement.getAttribute("data-theme") === "dark" ||
+                     document.body.getAttribute("data-theme") === "dark" ||
+                     (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  if (isHostDark) {
+    backdrop.classList.add("dark");
+  }
 
   // 状态变量
   let currentNotes = [];
@@ -856,11 +864,9 @@ function openSearchModal(context, engine) {
       } else if (context.workspace?.openNote) {
         await context.workspace.openNote(note.id);
       }
-
-      context.ui?.showNotice?.(`已快速打开笔记：《${note.title}》`);
+      // 静默切换，不再弹出任何阻塞式通知模态框
     } catch (err) {
       console.warn("[Enhancing Search] 打开笔记异常:", err);
-      context.ui?.showNotice?.(`打开笔记失败: ${err.message || err}`);
     }
     closeModal();
   }

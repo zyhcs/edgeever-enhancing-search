@@ -7,11 +7,11 @@
 :root,
 .light,
 [data-theme="light"] {
-  --ee-search-primary: #10b981;
-  --ee-search-primary-hover: #059669;
+  --ee-search-primary: var(--brand-green, #10b981);
+  --ee-search-primary-hover: var(--brand-green-hover, #059669);
   --ee-search-primary-light: rgba(16, 185, 129, 0.12);
-  --ee-search-indigo: #6366f1;
-  --ee-search-accent: #0ea5e9;
+  --ee-search-indigo: #059669;
+  --ee-search-accent: #10b981;
   --ee-search-bg: #ffffff;
   --ee-search-surface: #f8fafc;
   --ee-search-card-bg: #ffffff;
@@ -29,19 +29,19 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --ee-search-primary: #34d399;
-    --ee-search-primary-hover: #6ee7b7;
-    --ee-search-primary-light: rgba(52, 211, 153, 0.15);
-    --ee-search-indigo: #818cf8;
-    --ee-search-accent: #38bdf8;
-    --ee-search-bg: #0f172a;
-    --ee-search-surface: #1e293b;
-    --ee-search-card-bg: #1e293b;
-    --ee-search-card-hover: #263345;
-    --ee-search-border: #334155;
-    --ee-search-border-focus: #34d399;
-    --ee-search-text: #f8fafc;
-    --ee-search-text-muted: #94a3b8;
+    --ee-search-primary: #10b981;
+    --ee-search-primary-hover: #34d399;
+    --ee-search-primary-light: rgba(16, 185, 129, 0.18);
+    --ee-search-indigo: #34d399;
+    --ee-search-accent: #10b981;
+    --ee-search-bg: #141c19;
+    --ee-search-surface: #18221e;
+    --ee-search-card-bg: #1b2622;
+    --ee-search-card-hover: #22302b;
+    --ee-search-border: #283731;
+    --ee-search-border-focus: #10b981;
+    --ee-search-text: #f0fdf4;
+    --ee-search-text-muted: #8fa39a;
     --ee-search-hl-bg: rgba(250, 204, 21, 0.25);
     --ee-search-hl-text: #fde047;
     --ee-search-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
@@ -53,20 +53,21 @@
 .dark,
 [data-theme="dark"],
 html.dark,
-body.dark {
-  --ee-search-primary: #34d399;
-  --ee-search-primary-hover: #6ee7b7;
-  --ee-search-primary-light: rgba(52, 211, 153, 0.15);
-  --ee-search-indigo: #818cf8;
-  --ee-search-accent: #38bdf8;
-  --ee-search-bg: #0f172a;
-  --ee-search-surface: #1e293b;
-  --ee-search-card-bg: #1e293b;
-  --ee-search-card-hover: #263345;
-  --ee-search-border: #334155;
-  --ee-search-border-focus: #34d399;
-  --ee-search-text: #f8fafc;
-  --ee-search-text-muted: #94a3b8;
+body.dark,
+.edgeever-search-backdrop.dark {
+  --ee-search-primary: #10b981;
+  --ee-search-primary-hover: #34d399;
+  --ee-search-primary-light: rgba(16, 185, 129, 0.18);
+  --ee-search-indigo: #34d399;
+  --ee-search-accent: #10b981;
+  --ee-search-bg: #141c19;
+  --ee-search-surface: #18221e;
+  --ee-search-card-bg: #1b2622;
+  --ee-search-card-hover: #22302b;
+  --ee-search-border: #283731;
+  --ee-search-border-focus: #10b981;
+  --ee-search-text: #f0fdf4;
+  --ee-search-text-muted: #8fa39a;
   --ee-search-hl-bg: rgba(250, 204, 21, 0.25);
   --ee-search-hl-text: #fde047;
   --ee-search-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
@@ -118,7 +119,7 @@ body.dark {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* 扩展坞悬浮形态 (FAB) - 极简黑曜石与珍珠银质感，完美融入深色/浅色客户端 */
+/* 扩展坞悬浮形态 (FAB) - 极简墨玉黑曜石与薄荷翡翠青质感，完美融入 EdgeEver 客户端 */
 .edgeever-enhancing-search-trigger-btn.is-dock-btn,
 .edgeever-enhancing-search-trigger-btn.is-fab {
   width: 44px;
@@ -126,26 +127,24 @@ body.dark {
   min-width: 44px;
   min-height: 44px;
   border-radius: 22px;
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  color: #f1f5f9;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(135deg, #1b2622 0%, #141c19 100%);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
 
 .edgeever-enhancing-search-trigger-btn.is-dock-btn:hover,
 .edgeever-enhancing-search-trigger-btn.is-fab:hover {
-  background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
-  color: var(--ee-search-primary);
-  border-color: var(--ee-search-primary);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  background: linear-gradient(135deg, #22302b 0%, #18221e 100%);
+  color: #34d399;
+  border-color: #10b981;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.28);
 }
 
 .edgeever-enhancing-search-trigger-btn.is-dock-btn svg,
 .edgeever-enhancing-search-trigger-btn.is-fab svg {
   width: 20px;
   height: 20px;
-  fill: currentColor;
-}
   fill: currentColor;
 }
 
@@ -205,7 +204,7 @@ body.dark {
 .edgeever-search-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.68);
+  background: rgba(10, 16, 14, 0.72);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   display: flex;
@@ -543,8 +542,8 @@ body.dark {
 }
 
 .edgeever-meta-tag.is-user-tag {
-  background: rgba(99, 102, 241, 0.1);
-  color: var(--ee-search-indigo);
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--ee-search-primary);
 }
 
 /* 上下文摘要与高亮 */
