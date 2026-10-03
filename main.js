@@ -96,42 +96,257 @@ function stripMarkdown(md) {
 }
 
 /**
- * 简易 Markdown 转安全 HTML（用于右侧即时卡片预览，支持图片、代码、引用与列表）
+/**
+ * 行内 Markdown 解析器（行内加粗、斜体、代码、删除线、链接、图片与高亮）
+ */
+function renderMarkdownInline(text, keywords = []) {
+  if (!text) return "";
+  let s = escapeHtml(text);
+
+  // 1. 替换行内嵌入的图片
+  s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
+    const safeSrc = escapeHtml(src.trim());
+    const safeAlt = escapeHtml(alt || "");
+    return `<span class="ee-preview-img-inline-box"><img src="${safeSrc}" alt="${safeAlt}" loading="lazy" class="ee-preview-img" data-res-src="${safeSrc}" /></span>`;
+  });
+
+  // 2. 行内加粗与斜体
+  s = s.replace(/\*\*\*([^*]+)\*\*\*/g, "<strong><em>$1</em></strong>");
+  s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+  s = s.replace(/(?:^|\s)_([^_]+)_(?=\s|$)/g, " <em>$1</em> ");
+
+  // 3. 行内代码与删除线
+  s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+  s = s.replace(/~~([^~]+)~~/g, "<del>$1</del>");
+
+  // 4. 链接
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="ee-preview-link">$1</a>');
+
+  // 5. 关键词高亮 (保护已有 HTML 标签不被破坏)
+  if (keywords && keywords.length > 0) {
+    for (const kw of keywords) {
+      if (!kw || kw.length < 1) continue;
+      const re = new RegExp(`(${escapeRegExp(escapeHtml(kw))})(?![^<]*>)`, "gi");
+      s = s.replace(re, '<mark class="ee-search-hl">$1</mark>');
+    }
+  }
+
+  return s;
+}
+
+/**
+ * 判断一行是否为表格构成行
+ */
+function isTableLine(line) {
+  if (typeof line !== "string") return false;
+  const trimmed = line.trim();
+  if (!trimmed) return false;
+  // 分割线形式: |---|---| 或 :---:|---:
+  if (/^\|?(\s*:?-+:?\s*\|)+\s*:?-+:?\s*\|?$/.test(trimmed) || /^(\s*:?-+:?\s*\|)+\s*:?-+:?\s*$/.test(trimmed)) {
+    return true;
+  }
+  // 管道符开头或结尾的行
+  if (trimmed.startsWith("|") && (trimmed.endsWith("|") || trimmed.includes("|"))) {
+    return true;
+  }
+  // 单元格夹带管道符
+  if (/^[^|`\n]+(\s*\|\s*[^|`\n]+)+$/.test(trimmed)) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * 解析表格块并生成语义化 HTML
+ */
+function parseTableBlock(lines, keywords = []) {
+  if (!lines || lines.length < 2) return null;
+
+  // 拆分单行单元格工具函数
+  const splitRow = (rowStr) => {
+    let s = rowStr.trim();
+    if (s.startsWith("|")) s = s.slice(1);
+    if (s.endsWith("|")) s = s.slice(0, -1);
+    return s.split("|").map((cell) => cell.trim());
+  };
+
+  // 寻找分割线 (例如 |---|---| 或 |:---|:---:|---:|)
+  let sepIdx = -1;
+  let alignments = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (/^\|?(\s*:?-+:?\s*\|)+\s*:?-+:?\s*\|?$/.test(trimmed) || /^(\s*:?-+:?\s*\|)+\s*:?-+:?\s*$/.test(trimmed)) {
+      sepIdx = i;
+      const cols = trimmed.replace(/^\|/, "").replace(/\|$/, "").split("|");
+      alignments = cols.map((col) => {
+        const c = col.trim();
+        if (c.startsWith(":") && c.endsWith(":")) return "center";
+        if (c.endsWith(":")) return "right";
+        return "left";
+      });
+      break;
+    }
+  }
+
+  if (sepIdx === -1) return null;
+
+  let headerCells = [];
+  let bodyLines = [];
+
+  if (sepIdx === 0) {
+    if (lines.length > 1) {
+      headerCells = splitRow(lines[1]);
+      bodyLines = lines.slice(2);
+    }
+  } else {
+    const preHeader = splitRow(lines[0]);
+    const isPreHeaderEmpty = preHeader.length === 0 || preHeader.every((c) => !c);
+
+    if (isPreHeaderEmpty && lines.length > sepIdx + 1) {
+      // 兼容 EdgeEver 序列化导出的空头形式: |||| 后面跟分割线，再后面才是真正的表头
+      headerCells = splitRow(lines[sepIdx + 1]);
+      bodyLines = lines.slice(sepIdx + 2);
+    } else {
+      // 标准 Markdown 表头
+      headerCells = preHeader;
+      bodyLines = lines.slice(sepIdx + 1);
+    }
+  }
+
+  if (headerCells.length === 0) return null;
+
+  let tableHtml = '<div class="ee-preview-table-wrapper"><table class="ee-preview-table"><thead><tr>';
+  headerCells.forEach((cell, idx) => {
+    const align = alignments[idx] || "left";
+    tableHtml += `<th style="text-align: ${align};">${renderMarkdownInline(cell, keywords)}</th>`;
+  });
+  tableHtml += "</tr></thead><tbody>";
+
+  for (const bLine of bodyLines) {
+    const trimmed = bLine.trim();
+    if (!trimmed || /^\|?(\s*:?-+:?\s*\|)+\s*:?-+:?\s*\|?$/.test(trimmed)) continue;
+    const cells = splitRow(bLine);
+    if (cells.every((c) => !c)) continue;
+
+    tableHtml += "<tr>";
+    for (let cIdx = 0; cIdx < headerCells.length; cIdx++) {
+      const cellVal = cells[cIdx] || "";
+      const align = alignments[cIdx] || "left";
+      tableHtml += `<td style="text-align: ${align};">${renderMarkdownInline(cellVal, keywords)}</td>`;
+    }
+    tableHtml += "</tr>";
+  }
+
+  tableHtml += "</tbody></table></div>";
+  return tableHtml;
+}
+
+/**
+ * 完整 Markdown 转安全 HTML（支持表格、Mermaid流程图、图片、代码块、列表与标题）
  */
 function renderMarkdownPreviewHtml(md, keywords = []) {
   if (!md) return "<p style='color: var(--ee-search-text-muted);'>（暂无正文内容）</p>";
 
   const lines = md.split(/\r?\n/);
   let html = "";
-  let inCode = false;
   let inUl = false;
+  let inOl = false;
+  let chartCount = 0;
 
-  for (let line of lines) {
-    const trimmed = line.trim();
+  const flushLists = () => {
+    if (inUl) { html += "</ul>"; inUl = false; }
+    if (inOl) { html += "</ol>"; inOl = false; }
+  };
 
+  let i = 0;
+  while (i < lines.length) {
+    const rawLine = lines[i];
+    const trimmed = rawLine.trim();
+
+    // 1. 代码块与流程图检测 (```lang ... ```)
     if (trimmed.startsWith("```")) {
-      if (inCode) {
-        html += "</code></pre>";
-        inCode = false;
+      flushLists();
+      const match = trimmed.match(/^```([a-zA-Z0-9_\-+]*)/);
+      const lang = match ? match[1].toLowerCase().trim() : "";
+
+      const codeLines = [];
+      i++;
+      while (i < lines.length && !lines[i].trim().startsWith("```")) {
+        codeLines.push(lines[i]);
+        i++;
+      }
+      i++; // 消耗结束的 ```
+
+      const rawCode = codeLines.join("\n");
+      const isDiagram = ["mermaid", "flowchart", "sequence", "graph", "diagram"].includes(lang) ||
+                        (lang === "" && /^(graph|flowchart|sequenceDiagram|classDiagram|erDiagram|gantt|pie|gitGraph)\b/.test(rawCode.trim()));
+
+      if (isDiagram) {
+        chartCount++;
+        const chartId = `ee-mmd-${chartCount}-${Date.now()}`;
+        html += `
+          <div class="ee-mermaid-container" data-chart-id="${chartId}">
+            <div class="ee-mermaid-header">
+              <div class="ee-mermaid-badge">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="14" width="7" height="7"></rect>
+                  <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+                <span>流程图 (Mermaid)</span>
+              </div>
+              <div class="ee-mermaid-actions">
+                <button type="button" class="ee-mermaid-btn ee-mermaid-copy-btn" title="复制流程图源码">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  <span>复制</span>
+                </button>
+                <button type="button" class="ee-mermaid-btn ee-mermaid-toggle-btn" title="查看原始代码">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                  <span>源码</span>
+                </button>
+              </div>
+            </div>
+            <div class="ee-mermaid-diagram" id="${chartId}">
+              <div class="ee-mermaid-loading">
+                <span class="ee-search-inline-spinner"></span>
+                <span>正在渲染流程图...</span>
+              </div>
+            </div>
+            <pre class="ee-mermaid-source" style="display: none;"><code>${escapeHtml(rawCode)}</code></pre>
+          </div>
+        `;
       } else {
-        html += "<pre><code>";
-        inCode = true;
+        html += `<pre><code class="language-${escapeHtml(lang)}">${escapeHtml(rawCode)}</code></pre>`;
       }
       continue;
     }
 
-    if (inCode) {
-      html += escapeHtml(line) + "\n";
+    // 2. 表格块检测 (连续表格行聚合)
+    if (isTableLine(rawLine)) {
+      flushLists();
+      const tableLines = [];
+      while (i < lines.length && isTableLine(lines[i])) {
+        tableLines.push(lines[i]);
+        i++;
+      }
+      const tableHtml = parseTableBlock(tableLines, keywords);
+      if (tableHtml) {
+        html += tableHtml;
+      } else {
+        for (const tLine of tableLines) {
+          html += `<p>${renderMarkdownInline(tLine.trim(), keywords)}</p>`;
+        }
+      }
       continue;
     }
 
-    // 1. 独立图片行: ![alt](url)
+    // 3. 独立图片行: ![alt](url)
     const imgSoloMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
     if (imgSoloMatch) {
-      if (inUl) {
-        html += "</ul>";
-        inUl = false;
-      }
+      flushLists();
       const alt = imgSoloMatch[1] || "";
       const rawSrc = imgSoloMatch[2].trim();
       const safeSrc = escapeHtml(rawSrc);
@@ -142,60 +357,52 @@ function renderMarkdownPreviewHtml(md, keywords = []) {
           ${alt && alt !== "image.png" ? `<span class="ee-preview-img-caption">${safeAlt}</span>` : ""}
         </div>
       `;
+      i++;
       continue;
     }
 
+    // 4. 无序列表: - 或 *
     if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
-      if (!inUl) {
-        html += "<ul>";
-        inUl = true;
-      }
-      let liText = escapeHtml(trimmed.slice(2));
-      // 行内加粗与行内代码
-      liText = liText.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-      liText = liText.replace(/`([^`]+)`/g, "<code>$1</code>");
-      html += `<li>${liText}</li>`;
+      if (inOl) { html += "</ol>"; inOl = false; }
+      if (!inUl) { html += "<ul>"; inUl = true; }
+      html += `<li>${renderMarkdownInline(trimmed.slice(2), keywords)}</li>`;
+      i++;
       continue;
-    } else if (inUl) {
-      html += "</ul>";
-      inUl = false;
     }
 
-    if (trimmed.startsWith("### ")) {
-      html += `<h3>${escapeHtml(trimmed.slice(4))}</h3>`;
+    // 5. 有序列表: 1. 2.
+    const olMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
+    if (olMatch) {
+      if (inUl) { html += "</ul>"; inUl = false; }
+      if (!inOl) { html += "<ol>"; inOl = true; }
+      html += `<li>${renderMarkdownInline(olMatch[2], keywords)}</li>`;
+      i++;
+      continue;
+    }
+
+    flushLists();
+
+    // 6. 标题、引用与分割线
+    if (trimmed.startsWith("#### ")) {
+      html += `<h4>${renderMarkdownInline(trimmed.slice(5), keywords)}</h4>`;
+    } else if (trimmed.startsWith("### ")) {
+      html += `<h3>${renderMarkdownInline(trimmed.slice(4), keywords)}</h3>`;
     } else if (trimmed.startsWith("## ")) {
-      html += `<h2>${escapeHtml(trimmed.slice(3))}</h2>`;
+      html += `<h2>${renderMarkdownInline(trimmed.slice(3), keywords)}</h2>`;
     } else if (trimmed.startsWith("# ")) {
-      html += `<h1>${escapeHtml(trimmed.slice(2))}</h1>`;
+      html += `<h1>${renderMarkdownInline(trimmed.slice(2), keywords)}</h1>`;
     } else if (trimmed.startsWith("> ")) {
-      html += `<blockquote>${escapeHtml(trimmed.slice(2))}</blockquote>`;
+      html += `<blockquote>${renderMarkdownInline(trimmed.slice(2), keywords)}</blockquote>`;
+    } else if (/^(\*{3,}|-{3,}|_{3,})$/.test(trimmed)) {
+      html += `<hr />`;
     } else if (trimmed.length > 0) {
-      let pText = escapeHtml(trimmed);
-      // 替换行内嵌入的图片
-      pText = pText.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
-        const safeSrc = escapeHtml(src.trim());
-        const safeAlt = escapeHtml(alt || "");
-        return `<div class="ee-preview-img-box"><img src="${safeSrc}" alt="${safeAlt}" loading="lazy" class="ee-preview-img" data-res-src="${safeSrc}" /></div>`;
-      });
-      // 替换行内加粗
-      pText = pText.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-      // 替换行内代码
-      pText = pText.replace(/`([^`]+)`/g, "<code>$1</code>");
-      html += `<p>${pText}</p>`;
+      html += `<p>${renderMarkdownInline(trimmed, keywords)}</p>`;
     }
+
+    i++;
   }
 
-  if (inUl) html += "</ul>";
-  if (inCode) html += "</code></pre>";
-
-  // 高亮关键词
-  if (keywords && keywords.length > 0) {
-    for (const kw of keywords) {
-      if (!kw || kw.length < 1) continue;
-      const re = new RegExp(`(${escapeRegExp(escapeHtml(kw))})`, "gi");
-      html = html.replace(re, '<mark class="ee-search-hl">$1</mark>');
-    }
-  }
+  flushLists();
 
   return html;
 }
@@ -232,6 +439,183 @@ function hydratePreviewImages(containerEl, context) {
       // 如果是已知自定义协议，主动触发一次安全读取
       if (rawSrc.startsWith("edgeever-resource://") || rawSrc.includes("/api/v1/resources/")) {
         tryLoadBlob();
+      }
+    }
+  });
+}
+
+/**
+ * 流程图引擎动态加载器 (带环境检测、CDN加速与多重超时兜底)
+ */
+let mermaidLoadPromise = null;
+
+async function ensureMermaid() {
+  if (typeof window !== "undefined" && window.mermaid) {
+    return window.mermaid;
+  }
+  if (mermaidLoadPromise) return mermaidLoadPromise;
+
+  mermaidLoadPromise = new Promise((resolve) => {
+    if (typeof document === "undefined") {
+      resolve(null);
+      return;
+    }
+
+    // 检查是否有已注入的 mermaid script
+    let script = document.querySelector('script[data-mermaid-lib="true"]');
+    if (!script) {
+      script = document.createElement("script");
+      script.setAttribute("data-mermaid-lib", "true");
+      script.src = "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js";
+      script.crossOrigin = "anonymous";
+      script.onload = () => {
+        if (window.mermaid) {
+          try {
+            const isDark = document.documentElement.classList.contains("dark") ||
+                           document.body.classList.contains("dark") ||
+                           document.documentElement.dataset.theme === "dark" ||
+                           (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+            window.mermaid.initialize({
+              startOnLoad: false,
+              securityLevel: "loose",
+              theme: isDark ? "dark" : "default"
+            });
+          } catch (e) {}
+          resolve(window.mermaid);
+        } else {
+          resolve(null);
+        }
+      };
+      script.onerror = () => {
+        // CDN 备份加载
+        const backupScript = document.createElement("script");
+        backupScript.setAttribute("data-mermaid-lib", "true");
+        backupScript.src = "https://unpkg.com/mermaid@10/dist/mermaid.min.js";
+        backupScript.crossOrigin = "anonymous";
+        backupScript.onload = () => {
+          if (window.mermaid) {
+            try {
+              window.mermaid.initialize({ startOnLoad: false, securityLevel: "loose" });
+            } catch (e) {}
+            resolve(window.mermaid);
+          } else {
+            resolve(null);
+          }
+        };
+        backupScript.onerror = () => resolve(null);
+        document.head.appendChild(backupScript);
+      };
+      document.head.appendChild(script);
+    } else {
+      script.addEventListener("load", () => resolve(window.mermaid));
+      script.addEventListener("error", () => resolve(null));
+    }
+
+    // 4.5秒超时安全熔断
+    setTimeout(() => {
+      resolve(window.mermaid || null);
+    }, 4500);
+  });
+
+  return mermaidLoadPromise;
+}
+
+let mermaidCounter = 0;
+
+/**
+ * 流程图 DOM 节点水合器 (绑定复制/源码切换，并异步渲染高保真矢量 SVG)
+ */
+function hydrateMermaidCharts(containerEl) {
+  if (!containerEl) return;
+  const chartContainers = containerEl.querySelectorAll(".ee-mermaid-container");
+  if (chartContainers.length === 0) return;
+
+  // 1. 绑定交互按钮（复制、切换源码）
+  chartContainers.forEach((box) => {
+    const copyBtn = box.querySelector(".ee-mermaid-copy-btn");
+    const toggleBtn = box.querySelector(".ee-mermaid-toggle-btn");
+    const sourceEl = box.querySelector(".ee-mermaid-source");
+    const code = sourceEl ? sourceEl.textContent : "";
+
+    if (copyBtn) {
+      copyBtn.onclick = (e) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(code).then(() => {
+          const span = copyBtn.querySelector("span");
+          if (span) {
+            const old = span.textContent;
+            span.textContent = "已复制";
+            setTimeout(() => { span.textContent = old; }, 1500);
+          }
+        }).catch(() => {});
+      };
+    }
+
+    if (toggleBtn) {
+      toggleBtn.onclick = (e) => {
+        e.stopPropagation();
+        const isHidden = sourceEl.style.display === "none";
+        sourceEl.style.display = isHidden ? "block" : "none";
+        const span = toggleBtn.querySelector("span");
+        if (span) {
+          span.textContent = isHidden ? "图表" : "源码";
+        }
+      };
+    }
+  });
+
+  // 2. 异步渲染 SVG 矢量图
+  ensureMermaid().then(async (m) => {
+    for (const box of chartContainers) {
+      if (!box.isConnected) continue;
+      const diagramEl = box.querySelector(".ee-mermaid-diagram");
+      const sourceEl = box.querySelector(".ee-mermaid-source");
+      if (!diagramEl || !sourceEl) continue;
+
+      const rawCode = sourceEl.textContent.trim();
+      if (!rawCode) continue;
+
+      if (!m) {
+        // 离线环境无依赖时的优雅降级
+        diagramEl.innerHTML = `
+          <div class="ee-mermaid-fallback">
+            <div class="ee-mermaid-fallback-tip">⚠️ 流程图引擎离线（可点击右上角“源码”阅读结构，联网后自动绘制）</div>
+          </div>
+        `;
+        sourceEl.style.display = "block";
+        continue;
+      }
+
+      try {
+        mermaidCounter++;
+        const renderId = "ee_chart_" + Date.now() + "_" + mermaidCounter;
+
+        const isDark = document.documentElement.classList.contains("dark") ||
+                       document.body.classList.contains("dark") ||
+                       document.documentElement.dataset.theme === "dark" ||
+                       (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+        m.initialize({
+          startOnLoad: false,
+          securityLevel: "loose",
+          theme: isDark ? "dark" : "default"
+        });
+
+        const { svg } = await m.render(renderId, rawCode);
+        if (box.isConnected) {
+          diagramEl.innerHTML = svg;
+          diagramEl.classList.add("is-rendered");
+        }
+      } catch (renderErr) {
+        console.warn("[Enhancing Search] Mermaid 渲染警告:", renderErr);
+        if (box.isConnected) {
+          diagramEl.innerHTML = `
+            <div class="ee-mermaid-fallback">
+              <div class="ee-mermaid-fallback-tip">⚠️ 流程图语法格式有误，已自动展开原始源码</div>
+            </div>
+          `;
+          sourceEl.style.display = "block";
+        }
       }
     }
   });
@@ -1106,6 +1490,8 @@ function openSearchModal(context, engine) {
 
       // 激活图片加载与异步协议转换
       hydratePreviewImages(previewBodyEl, context);
+      // 激活流程图渲染与交互绑定
+      hydrateMermaidCharts(previewBodyEl);
     };
 
     // 先用已有的数据快速渲染一次
