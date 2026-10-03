@@ -1,0 +1,85 @@
+{
+  "type": "plugin",
+  "id": "org.edgeever.plugins.enhancing-search",
+  "name": "Enhancing Search",
+  "version": "1.0.0",
+  "apiVersion": "2",
+  "settingsUi": "host",
+  "description": "Powerful global full-text search across all notes with keywords, tags, created & updated dates, instant snippet highlights, and modern card preview.",
+  "locales": {
+    "zh-CN": {
+      "name": "全库增强搜索 (Enhancing Search)",
+      "description": "专为 EdgeEver 打造的全应用深度增强搜索插件。打破单个笔记本限制，支持全库全文检索、多关键词分词、标签筛选、创建与修改时间范围过滤、智能高亮摘要以及双栏沉浸式卡片实时预览。"
+    }
+  },
+  "author": "zyhcs",
+  "entry": "./main.js",
+  "platforms": ["web", "desktop"],
+  "permissions": [
+    "notes:read",
+    "notes:write",
+    "editor:read",
+    "ui:commands",
+    "ui:notices",
+    "storage"
+  ],
+  "settings": {
+    "fields": [
+      {
+        "key": "button_position",
+        "type": "select",
+        "label": "增强搜索入口按钮显示位置",
+        "default": "dock",
+        "options": [
+          { "value": "dock", "label": "🧩 统一插件悬浮工具坞 (自动排队，与其他插件无缝并存，推荐)" },
+          { "value": "sidebar", "label": "📁 左侧边栏底部 (与设置齿轮并列，全局常驻且不占正文)" },
+          { "value": "toolbar", "label": "📝 嵌入编辑器顶部工具栏 (仅打开笔记时在标题栏显示)" },
+          { "value": "hidden", "label": "🚫 隐藏按钮 (纯快捷键 Cmd/Ctrl+Shift+F 唤出)" }
+        ]
+      },
+      {
+        "key": "default_sort",
+        "type": "select",
+        "label": "默认搜索排序规则",
+        "default": "relevance",
+        "options": [
+          { "value": "relevance", "label": "🎯 智能相关度匹配优先 (标题 > 标签 > 正文)" },
+          { "value": "updated_desc", "label": "🕒 最近修改时间优先 (最新编辑的在最前)" },
+          { "value": "created_desc", "label": "📅 创建时间优先 (最新创建的在最前)" },
+          { "value": "title_asc", "label": "🔤 笔记标题字典顺序 (A - Z)" }
+        ]
+      },
+      {
+        "key": "search_scope_default",
+        "type": "select",
+        "label": "默认检索范围",
+        "default": "all",
+        "options": [
+          { "value": "all", "label": "🌐 全工作区所有笔记 (彻底打破单笔记本限制)" },
+          { "value": "current_notebook", "label": "📂 优先限定当前笔记所属笔记本" }
+        ]
+      },
+      {
+        "key": "enable_card_preview",
+        "type": "boolean",
+        "label": "启用右侧双栏即时深度卡片预览",
+        "default": true
+      },
+      {
+        "key": "max_results",
+        "type": "number",
+        "label": "搜索结果最大显示条数",
+        "default": 40,
+        "min": 10,
+        "max": 100,
+        "step": 5
+      },
+      {
+        "key": "auto_cache_indexing",
+        "type": "boolean",
+        "label": "启用内存秒级极速索引缓存 (大幅提升打字搜索流畅度)",
+        "default": true
+      }
+    ]
+  }
+}

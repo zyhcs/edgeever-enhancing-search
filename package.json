@@ -1,0 +1,24 @@
+{
+  "name": "edgeever-enhancing-search",
+  "version": "1.0.0",
+  "description": "Enhanced global search plugin for EdgeEver with keywords, tags, created & updated dates, instant highlights, and modern card preview.",
+  "main": "main.js",
+  "scripts": {
+    "test": "node -c main.js"
+  },
+  "keywords": [
+    "edgeever",
+    "edgeever-plugin",
+    "enhanced-search",
+    "global-search",
+    "fulltext-search",
+    "spotlight",
+    "card-preview"
+  ],
+  "author": "zyhcs",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zyhcs/edgeever-enhancing-search.git"
+  }
+}
